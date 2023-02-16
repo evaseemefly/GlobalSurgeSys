@@ -10,4 +10,8 @@ from itemadapter import ItemAdapter
 
 class GlobalsurgespiderPipeline:
     def process_item(self, item, spider):
+        print(item)
         return item
+
+    def to_db(self, item: dict):
+        pass

@@ -10,3 +10,12 @@ class GlobalsurgespiderItem(scrapy.Item):
     # define the fields for your item here like:
     # name = scrapy.Field()
     pass
+
+
+class StationsSurgeItem(scrapy.Item):
+    """
+        站点 surge item
+    """
+    dt = scrapy.Field()
+    surge = scrapy.Field()
+    ts = scrapy.Field()
