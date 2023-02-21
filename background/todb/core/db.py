@@ -39,7 +39,7 @@ class DbFactory:
         self.password = pwd if pwd else db_options.get('PASSWORD')
         self.engine = create_engine(
             f"mysql+{self.engine_str}://{self.user}:{self.password}@{self.host}:{self.port}/{self.db_name}",
-            encoding='utf-8', pool_pre_ping=True)
+            encoding='utf-8', echo=True, pool_pre_ping=True)
         self._session_def = sessionmaker(bind=self.engine)
 
     @property
