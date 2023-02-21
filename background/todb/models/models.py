@@ -65,6 +65,8 @@ class StationRealDataSpecific(IIdModel, IDel, IModel):
     gmt_dt = Column(DATETIME(fsp=6), default=datetime.utcnow)
     timestamp = Column(Integer, nullable=False, default=0)
     surge = Column(Float, nullable=False, default=DEFAULT_SURGE)
+    # 所属的 SpiderTaskInfo id
+    tid = Column(Integer, nullable=False, default=0)
     __tablename__ = 'station_realdata_specific'
 
 
@@ -98,6 +100,8 @@ class RegionInfo(IIdModel, IDel, IModel):
 class StationStatus(IIdModel, IDel, IModel):
     station_code = Column(VARCHAR(10), nullable=False)
     status = Column(INTEGER(4), default=DEFAULT_COUNTRY_INDEX)
+    # 所属的 SpiderTaskInfo id
+    tid = Column(Integer, nullable=False, default=0)
     __tablename__ = 'station_status'
 
 
