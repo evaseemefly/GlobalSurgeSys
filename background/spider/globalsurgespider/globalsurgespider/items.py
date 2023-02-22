@@ -12,6 +12,14 @@ class GlobalsurgespiderItem(scrapy.Item):
     pass
 
 
+class StationSurgeListItem(scrapy.Item):
+    """
+        站点潮位集合 Item
+    """
+    station_code = scrapy.Field()
+    surge_list = scrapy.Field()
+
+
 class StationsSurgeItem(scrapy.Item):
     """
         站点 surge item

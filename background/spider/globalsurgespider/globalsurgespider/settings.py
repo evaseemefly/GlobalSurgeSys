@@ -87,4 +87,4 @@ ITEM_PIPELINES = {
 # HTTPCACHE_STORAGE = 'scrapy.extensions.httpcache.FilesystemCacheStorage'
 
 # 爬取站点的头文件戳集合
-SPIDER_TITLE_STAMPS = ['rad(m)', 'wls', 'prs(m)', 'aqu(m)', 'pwl(m)', 'flt(m)', 'bwl(m)', 'pwl(m)']
+SPIDER_TITLE_STAMPS = ['rad(m)', 'wls', 'prs(m)', 'aqu(m)', 'pwl(m)', 'flt(m)', 'bwl(m)', 'pwl(m)', 'bub(m)']

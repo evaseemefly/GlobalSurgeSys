@@ -12,6 +12,7 @@ from typing import List
 # 本項目的
 from globalsurgespider.items import StationsSurgeItem
 from globalsurgespider.settings import SPIDER_TITLE_STAMPS
+from decorators import provide_store_task
 
 
 class GlobalstationstatusSpider(scrapy.Spider):
@@ -43,6 +44,9 @@ class GlobalstationstatusSpider(scrapy.Spider):
             print(f'当前状态:code:{code},status:{status}')
 
         # 遍历 list_station_status 继续爬取单站数据
+
+    @provide_store_task
+    def spider_all_station(self, list_station_status: List[dict]):
         for item_station in list_station_status:
             # 判断当前站点的状态,为 online 则执行下一步爬取操作
             if item_station['status'] == 'online':
@@ -50,12 +54,15 @@ class GlobalstationstatusSpider(scrapy.Spider):
                 temp_code: str = item_station['code']
                 url = f'http://www.ioc-sealevelmonitoring.org/bgraph.php?code={temp_code}&output=tab&period=0.5'
                 yield Request(url, callback=self.station_surge_parise)
+        # TODO:[*] 23-02-22 STEP3: 将 将 spider_count interval 等信息写入 tb:spider_task_info
         pass
 
-    def station_surge_parise(self, response: HtmlResponse):
+    def station_surge_parise(self, response: HtmlResponse, count: int = 30):
         """
+            爬取单个站点并提交 pipeline 持久化保存
             爬取指定的共享站点的潮位数据
         :param response: html页面，可以通过html的方式进行解析
+        :param count: list 每次截取的长度，默认长度30.时间间隔1min。
         :return: {'dt': datetime.datetime(2023, 2, 14, 19, 42, tzinfo=tzutc()),
                  'surge': 2.2037,
                  'ts': 1676403720}[]
@@ -63,12 +70,15 @@ class GlobalstationstatusSpider(scrapy.Spider):
 
         list_station_surge: List[dict] = self.station_surge_html2list(response, SPIDER_TITLE_STAMPS)
         list_items: List[StationsSurgeItem] = []
+        list_station_surge = list_station_surge[::-1][:count]
         for surge in list_station_surge:
             item = StationsSurgeItem()
             item['dt'] = surge['dt']
             item['ts'] = surge['ts']
             item['surge'] = surge['surge']
+            list_items.append(item)
             yield item
+        # yield list_items
         #     list_items.append(item)
         # return list_items
 
@@ -146,7 +156,7 @@ class GlobalstationstatusSpider(scrapy.Spider):
                                 # ts:1548260567 10位
                                 temp_dict = {'dt': temp_dt,
                                              'surge': float(np.nan if temp_rad_str.strip() == '' else temp_rad_str),
-                                             'ts': arrow.get(temp_dt_str).int_timestamp}
+                                             'ts': arrow.get(temp_dt_str).timestamp}
                                 list_station_rad.append(temp_dict)
                                 # for td in td_list[index:]:
                                 #     print(td)
