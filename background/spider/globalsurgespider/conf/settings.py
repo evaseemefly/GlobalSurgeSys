@@ -2,9 +2,9 @@
 DATABASES = {
     'default': {
         'ENGINE': 'mysqldb',  # 数据库引擎
-        'NAME': 'wave_forecast_db',  # 数据库名
+        'NAME': 'surge_global_sys',  # 数据库名
         'USER': 'root',  # 账号
-        'PASSWORD': '',
+        'PASSWORD': '123456',
         'HOST': '127.0.0.1',  # HOST
         'POST': 3306,  # 端口
         'OPTIONS': {
@@ -19,4 +19,9 @@ DATABASES = {
         'HOST': 'localhost',  # HOST
         'POST': 27017,  # 端口
     }
+}
+
+TASK_OPTIONS = {
+    'name_prefix': 'TASK_SPIDER_GLOBAL_',
+    'interval': 10,  # 单位min
 }

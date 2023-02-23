@@ -36,9 +36,10 @@ class DbFactory:
         self.db_name = db_name if db_name else db_options.get('NAME')
         self.user = user if user else db_options.get('USER')
         self.password = pwd if pwd else db_options.get('PASSWORD')
+        # TypeError: Invalid argument(s) 'encoding' sent to create_engine(), using configuration MySQLDialect_mysqldb/QueuePool/Engine.  Please check that the keyword arguments are appropriate for this combination of components.
         self.engine = create_engine(
             f"mysql+{self.engine_str}://{self.user}:{self.password}@{self.host}:{self.port}/{self.db_name}",
-            encoding='utf-8', pool_pre_ping=True)
+            pool_pre_ping=True, future=True)
         self._session_def = sessionmaker(bind=self.engine)
 
     @property

@@ -7,9 +7,12 @@
 # useful for handling different item types with a single interface
 from itemadapter import ItemAdapter
 
+from typing import List
+from globalsurgespider.items import StationsSurgeItem, StationSurgeListItem
+
 
 class GlobalsurgespiderPipeline:
-    def process_item(self, item, spider):
+    def process_item(self, item: StationSurgeListItem, spider):
         # TODO:[*] 23-02-22 STEP1: 将 items.py -> StationSurgeListItem 批量写入 db
         # TODO:[*] 23-02-22 STEP2: 批量录入后 更新 station_status,可使用装饰器实现
         print(item)

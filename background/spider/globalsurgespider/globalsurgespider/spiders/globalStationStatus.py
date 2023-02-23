@@ -10,9 +10,13 @@ import numpy as np
 import re
 from typing import List
 # 本項目的
-from globalsurgespider.items import StationsSurgeItem
+from globalsurgespider.items import StationsSurgeItem, StationSurgeListItem
 from globalsurgespider.settings import SPIDER_TITLE_STAMPS
+from models.models import SpiderTaskInfo
 from decorators import provide_store_task
+from common.enums import TaskTypeEnum
+from core.db import DbFactory
+from conf.settings import TASK_OPTIONS
 
 
 class GlobalstationstatusSpider(scrapy.Spider):
@@ -20,9 +24,16 @@ class GlobalstationstatusSpider(scrapy.Spider):
     # 爬取的域： http://www.ioc-sealevelmonitoring.org/
     allowed_domains = ['www.ioc-sealevelmonitoring.org']
     start_urls = ['http://www.ioc-sealevelmonitoring.org/service.php?server=gml&show=active&showgauges=t']
+    session = DbFactory().Session
 
     def parse(self, response: XmlResponse):
+
         print(response)
+        # utc时间
+        now_utc: arrow.Arrow = arrow.Arrow.utcnow()
+        date_utc_ymdhm: str = now_utc.format('YYYYMMDDHHmm')
+        task_name_prefix: str = TASK_OPTIONS.get('name_prefix')
+        task_name: str = f'{task_name_prefix}{date_utc_ymdhm}'
         # response.text
         # xpath_parse = response.xpath('/wfs/gml:Point')
         temp = response.xpath('body/featurecollection/featuremember/point')
@@ -34,7 +45,7 @@ class GlobalstationstatusSpider(scrapy.Spider):
         # 取出所有的 point点
         selector_list = sel.xpath('body/featurecollection/featuremember/point')
         # 只取出前5个
-        selector_list = selector_list[:5]
+        selector_list = selector_list[:2]
         list_station_status: List[dict] = []
         for point in selector_list:
             code = point.xpath('code/text()').get()
@@ -44,9 +55,26 @@ class GlobalstationstatusSpider(scrapy.Spider):
             print(f'当前状态:code:{code},status:{status}')
 
         # 遍历 list_station_status 继续爬取单站数据
+        # 注意此处若直接调用 self.func 的话不会执行？
+        # self.spider_all_station(list_station_status)
+        # self.spider_test(list_station_status)
+        # 方法1:
+        # for item_station in list_station_status:
+        #     try:
+        #         # 判断当前站点的状态,为 online 则执行下一步爬取操作
+        #         if item_station['status'] == 'online':
+        #             # 当前的站点 code
+        #             temp_code: str = item_station['code']
+        #             url = f'http://www.ioc-sealevelmonitoring.org/bgraph.php?code={temp_code}&output=tab&period=0.5'
+        #             yield Request(url, callback=self.station_surge_parise)
+        #     except Exception as ex:
+        #         print(ex)
+        # 方法2:调用生成器
+        self.spider_all_station(list_station_status, now_utc, task_name)
 
-    @provide_store_task
-    def spider_all_station(self, list_station_status: List[dict]):
+        pass
+
+    def spider_test(self, list_station_status: List[dict]):
         for item_station in list_station_status:
             # 判断当前站点的状态,为 online 则执行下一步爬取操作
             if item_station['status'] == 'online':
@@ -56,6 +84,51 @@ class GlobalstationstatusSpider(scrapy.Spider):
                 yield Request(url, callback=self.station_surge_parise)
         # TODO:[*] 23-02-22 STEP3: 将 将 spider_count interval 等信息写入 tb:spider_task_info
         pass
+
+    def _generator_spider_all_station(self, list_station_status: List[dict] = []):
+        """
+            注意此处不能不传入 url
+            TypeError: Request url must be str, got NoneType
+            爬取全部站点的生成器
+        :param list_station_status:
+        :return:
+        """
+        for item_station in list_station_status:
+            # 判断当前站点的状态,为 online 则执行下一步爬取操作
+            if item_station['status'] == 'online':
+                # 当前的站点 code
+                temp_code: str = item_station['code']
+                url = f'http://www.ioc-sealevelmonitoring.org/bgraph.php?code={temp_code}&output=tab&period=0.5'
+                yield Request(url, callback=self.station_surge_parise)
+        # TODO:[*] 23-02-22 STEP3: 将 将 spider_count interval 等信息写入 tb:spider_task_info
+
+    # @provide_store_task
+    def spider_all_station(self, list_station_status: List[dict], now_utc: arrow.Arrow, task_name: str):
+        """
+            注意由于本方法中包含 yield 字段，所以本方法为一个生成器(generator)，不能直接调用笨方法
+        :param list_station_status:
+        :param now_utc: 传入的当前时间
+        :param task_name: 任务名
+        :return:
+        """
+        index = 0
+        # 手动调用生成器
+        generator = self._generator_spider_all_station(list_station_status)
+        while index < len(list_station_status):
+            try:
+                next(generator)
+                print(index)
+                index += 1
+            except Exception as ex:
+                print(ex)
+                break
+        # TODO:[*] 23-02-22 STEP3: 将 将 spider_count interval 等信息写入 tb:spider_task_info
+        interval: int = TASK_OPTIONS.get('interval')
+        task_info: SpiderTaskInfo = SpiderTaskInfo(timestamp=now_utc.timestamp, task_name=task_name,
+                                                   task_type=TaskTypeEnum.SUCCESS.value,
+                                                   spider_count=len(list_station_status), interval=interval)
+        self.session.add(task_info)
+        self.session.commit()
 
     def station_surge_parise(self, response: HtmlResponse, count: int = 30):
         """
@@ -71,13 +144,18 @@ class GlobalstationstatusSpider(scrapy.Spider):
         list_station_surge: List[dict] = self.station_surge_html2list(response, SPIDER_TITLE_STAMPS)
         list_items: List[StationsSurgeItem] = []
         list_station_surge = list_station_surge[::-1][:count]
+
         for surge in list_station_surge:
             item = StationsSurgeItem()
             item['dt'] = surge['dt']
             item['ts'] = surge['ts']
             item['surge'] = surge['surge']
             list_items.append(item)
-            yield item
+            # yield item
+        itemStationList: StationSurgeListItem = StationSurgeListItem()
+        itemStationList['station_code'] = 'test'
+        itemStationList['surge_list'] = list_items
+        yield itemStationList
         # yield list_items
         #     list_items.append(item)
         # return list_items
@@ -116,7 +194,7 @@ class GlobalstationstatusSpider(scrapy.Spider):
                 出现了 stamp 为 wls(m) 
             '''
         # 定位到 table -> tbody
-        # TODO:[-] 22-04-26 注意此处 由于本身页面有 html > body > div 而打印出来的只保留了 div 中的部分，缺失了前面的 html > body
+        # 22-04-26 注意此处 由于本身页面有 html > body > div 而打印出来的只保留了 div 中的部分，缺失了前面的 html > body
         try:
             content = etree_htm.xpath('/html/body/div/table/tr')
             # print(content)
@@ -131,12 +209,12 @@ class GlobalstationstatusSpider(scrapy.Spider):
                 '''
                     <td>Time (UTC)</td><td class=field>rad(m)</td>
                 '''
-                # TODO:[-] 22-05-17 注意此处可能出现多个 td 需要先找到 rad 所在的列的 index
+                # 22-05-17 注意此处可能出现多个 td 需要先找到 rad 所在的列的 index
                 try:
                     if len(td_list) >= 2:
                         table_name = td_list[0].text
                         for td_index, td_name in enumerate(td_list):
-                            # TODO:[-] 22-11-18 由于标志符目前看可能不止一种，修改为数组
+                            # 22-11-18 由于标志符目前看可能不止一种，修改为数组
                             if td_name.text in rad_stamp_list:
                                 rad_col_index = td_index
                         if table_name == 'Time (UTC)':
@@ -152,7 +230,7 @@ class GlobalstationstatusSpider(scrapy.Spider):
                                 # 注意时间为 UTC 时间
                                 temp_dt = arrow.get(temp_dt_str).datetime
                                 temp_rad_str: str = td_list[rad_col_index].text
-                                # TODO:[-] 22-04-27 注意此处的 时间戳转为换 int ，不要使用 float
+                                # 22-04-27 注意此处的 时间戳转为换 int ，不要使用 float
                                 # ts:1548260567 10位
                                 temp_dict = {'dt': temp_dt,
                                              'surge': float(np.nan if temp_rad_str.strip() == '' else temp_rad_str),
