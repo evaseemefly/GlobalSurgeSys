@@ -25,3 +25,9 @@ TASK_OPTIONS = {
     'name_prefix': 'TASK_SPIDER_GLOBAL_',
     'interval': 10,  # 单位min
 }
+
+DB_TABLE_SPLIT_OPTIONS = {
+    'station': {
+        'tab_split_name': 'station_realdata_specific'
+    }
+}
