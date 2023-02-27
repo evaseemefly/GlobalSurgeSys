@@ -85,11 +85,11 @@ class GlobalstationstatusSpider(scrapy.Spider):
         # TODO:[*] 23-02-22 STEP3: 将 将 spider_count interval 等信息写入 tb:spider_task_info
         pass
 
-    def _generator_spider_all_station(self, list_station_status: List[dict] = []):
+    def generator_spider_all_station(self, list_station_status: List[dict] = []):
         """
+            爬取全部站点的生成器
             注意此处不能不传入 url
             TypeError: Request url must be str, got NoneType
-            爬取全部站点的生成器
         :param list_station_status:
         :return:
         """
@@ -99,6 +99,9 @@ class GlobalstationstatusSpider(scrapy.Spider):
                 # 当前的站点 code
                 temp_code: str = item_station['code']
                 url = f'http://www.ioc-sealevelmonitoring.org/bgraph.php?code={temp_code}&output=tab&period=0.5'
+                # TODO:[*] 23-02-27 注意此处不会执行 station_surge_parise 方法
+                # yield print(temp_code)
+                # 参考文章: https://blog.csdn.net/sinat_28984567/article/details/109001820
                 yield Request(url, callback=self.station_surge_parise)
         # TODO:[*] 23-02-22 STEP3: 将 将 spider_count interval 等信息写入 tb:spider_task_info
 
@@ -113,10 +116,12 @@ class GlobalstationstatusSpider(scrapy.Spider):
         """
         index = 0
         # 手动调用生成器
-        generator = self._generator_spider_all_station(list_station_status)
+        generator = self.generator_spider_all_station(list_station_status)
         while index < len(list_station_status):
             try:
+                # 当执行了第一遍之后提示 'NoneType' object is not callable
                 next(generator)
+                # generator.next()
                 print(index)
                 index += 1
             except Exception as ex:
@@ -130,7 +135,7 @@ class GlobalstationstatusSpider(scrapy.Spider):
         self.session.add(task_info)
         self.session.commit()
 
-    def station_surge_parise(self, response: HtmlResponse, count: int = 30):
+    def station_surge_parise(self, response: HtmlResponse):
         """
             爬取单个站点并提交 pipeline 持久化保存
             爬取指定的共享站点的潮位数据
@@ -140,7 +145,7 @@ class GlobalstationstatusSpider(scrapy.Spider):
                  'surge': 2.2037,
                  'ts': 1676403720}[]
         """
-
+        count: int = 30
         list_station_surge: List[dict] = self.station_surge_html2list(response, SPIDER_TITLE_STAMPS)
         list_items: List[StationsSurgeItem] = []
         list_station_surge = list_station_surge[::-1][:count]

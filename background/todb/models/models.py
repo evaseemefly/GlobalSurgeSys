@@ -17,7 +17,7 @@ engine = DbFactory().engine
 
 # 生成基类
 BaseMeta = declarative_base()
-md = MetaData(bind=engine)  # 引用MetaData
+# md = MetaData(bind=engine)  # 引用MetaData
 metadata = BaseMeta.metadata
 
 

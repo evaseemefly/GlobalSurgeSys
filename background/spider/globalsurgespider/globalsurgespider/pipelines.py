@@ -9,6 +9,8 @@ from itemadapter import ItemAdapter
 
 from typing import List
 from globalsurgespider.items import StationsSurgeItem, StationSurgeListItem
+from core.data import StationSurgeRealData
+from models.models import StationRealDataSpecific
 
 
 class GlobalsurgespiderPipeline:
@@ -16,7 +18,17 @@ class GlobalsurgespiderPipeline:
         # TODO:[*] 23-02-22 STEP1: 将 items.py -> StationSurgeListItem 批量写入 db
         # TODO:[*] 23-02-22 STEP2: 批量录入后 更新 station_status,可使用装饰器实现
         print(item)
+        self.to_db(item)
         return item
 
     def to_db(self, item: dict):
+        """
+
+        @param item: ['station_code','surge_list']
+        @return:
+        """
+        station_code: str = item['station_code']
+        list_realdata: List[StationRealDataSpecific] = item['surge_list']
+        stationSurge = StationSurgeRealData(station_code, list_realdata)
+        stationSurge.create_split_tab()
         pass

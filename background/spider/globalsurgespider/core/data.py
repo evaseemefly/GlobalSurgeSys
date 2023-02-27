@@ -54,19 +54,25 @@ class StationSurgeRealData:
         end_ts: Arrow = sorted_list[0]['timestamp']
         return Arrow(end_ts)
 
-    def create_split_tab(self):
+    def create_split_tab(self) -> bool:
         """
             创建分表
         """
-        self._check_need_split_tab(to_create=True)
+        is_created = self._check_need_split_tab(to_create=True)
+        return is_created
         pass
 
     def _check_need_split_tab(self, to_create: bool = True) -> bool:
+        """
+            判断是否需要分表，若已存在表是否覆盖
+        @param to_create: 是否覆盖
+        @return:
+        """
         tab_name: str = self._get_split_tab_name()
-        if self._check_exist_tab(tab_name) is False and to_create is True:
-            self._create_station_realdata_tab(tab_name)
-
-            pass
+        is_need = False
+        if self._check_exist_tab(tab_name) is False or (self._check_exist_tab(tab_name) and to_create):
+            is_need = self._create_station_realdata_tab(tab_name)
+        return is_need
 
     def _get_split_tab_name(self) -> str:
         """
@@ -98,7 +104,12 @@ class StationSurgeRealData:
         pass
 
     def _create_station_realdata_tab(self, tab_name: str) -> bool:
-        is_ob = False
+        """
+            根据 tab_name 创建对应的潮位实况表
+        @param tab_name:
+        @return:
+        """
+        is_ok = False
         meta_data = MetaData()
         Table(tab_name, meta_data, Column('id', Integer, primary_key=True),
               Column('is_del', TINYINT(1), nullable=False, server_default=text("'0'"), default=0),
@@ -115,6 +126,7 @@ class StationSurgeRealData:
             # result = result_proxy.fetchall()
             try:
                 meta_data.create_all(engine)
+                is_ok = True
             except Exception as ex:
                 print(ex.args)
-        return tab_name
+        return is_ok

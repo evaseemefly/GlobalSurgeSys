@@ -1,4 +1,3 @@
-import mongoengine
 from sqlalchemy import create_engine
 from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.orm import sessionmaker
@@ -39,7 +38,7 @@ class DbFactory:
         self.password = pwd if pwd else db_options.get('PASSWORD')
         self.engine = create_engine(
             f"mysql+{self.engine_str}://{self.user}:{self.password}@{self.host}:{self.port}/{self.db_name}",
-            encoding='utf-8', echo=True, pool_pre_ping=True)
+            echo=True, pool_pre_ping=True)
         self._session_def = sessionmaker(bind=self.engine)
 
     @property
