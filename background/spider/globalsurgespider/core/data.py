@@ -1,9 +1,12 @@
 from typing import List
 from arrow import Arrow
+import arrow
 from datetime import datetime
 from sqlalchemy import create_engine
 from sqlalchemy.ext.automap import automap_base
-from models.models import StationRealDataSpecific
+
+from common.enums import TaskTypeEnum
+from models.models import StationRealDataSpecific, SpiderTaskInfo
 from sqlalchemy import ForeignKey, Sequence, MetaData, Table
 from sqlalchemy import Column, Date, Float, ForeignKey, Integer, text
 from sqlalchemy.dialects.mysql import DATETIME, INTEGER, TINYINT, VARCHAR
@@ -36,9 +39,10 @@ class StationSurgeRealData:
             else:
                 return 0
 
-        sorted_list = self.list_station_realdata.sort(_sort)
-        start_ts: Arrow = sorted_list[0]['timestamp']
-        return Arrow(start_ts)
+        # sorted_list = self.list_station_realdata.sort(_sort)
+        sorted_list = sorted(self.list_station_realdata, key=lambda station: station['ts'])
+        start_ts: Arrow = sorted_list[0]['ts']
+        return arrow.get(start_ts)
 
     @property
     def gmt_end(self) -> Arrow:
@@ -50,9 +54,10 @@ class StationSurgeRealData:
             else:
                 return 0
 
-        sorted_list = self.list_station_realdata.sort(_sort, reverse=True)
-        end_ts: Arrow = sorted_list[0]['timestamp']
-        return Arrow(end_ts)
+        # 倒叙排列
+        sorted_list = sorted(self.list_station_realdata, key=lambda station: station['ts'], reverse=True)
+        end_ts: Arrow = sorted_list[0]['ts']
+        return arrow.get(end_ts)
 
     def create_split_tab(self) -> bool:
         """
@@ -61,6 +66,32 @@ class StationSurgeRealData:
         is_created = self._check_need_split_tab(to_create=True)
         return is_created
         pass
+
+    def check_realdata_list(self, station_code: str, to_coverage: bool = False,
+                            realdata_list: List[StationRealDataSpecific] = []) -> bool:
+        """
+            判断 当前需要插入的数据是否已经存在于 表中，若存在且 to_coverage = True 则进行覆盖
+        :param to_coverage:
+        :param realdata_list:
+        :return:
+        """
+        tab_name: str = self._get_split_tab_name()
+        if self._check_exist_tab(tab_name):
+            self._insert_realdata(station_code, realdata_list, to_coverage=to_coverage)
+
+        pass
+
+    def _insert_realdata(self, station_code: str, realdata_list: List[StationRealDataSpecific],
+                         to_coverage: bool = False):
+        """
+            若 to_coverage = True 则向表中覆盖已存在的数据
+        :param realdata_list:
+        :param to_coverage:
+        :return:
+        """
+        dist_stationcodes: set[str] = set([temp.station_code for temp in realdata_list])
+        for dist_station_code in dist_stationcodes:
+            temp_stationcode_realdata = list(filter(lambda o: o['station_code'] == dist_station_code, realdata_list))
 
     def _check_need_split_tab(self, to_create: bool = True) -> bool:
         """
@@ -130,3 +161,21 @@ class StationSurgeRealData:
             except Exception as ex:
                 print(ex.args)
         return is_ok
+
+
+class SpiderTask:
+    def __init__(self, now_utc: Arrow, count_stations: int, task_name: str):
+        self.now_utc = now_utc
+        self.count_stations = count_stations
+        self.task_name = task_name
+        self.session = DbFactory().Session
+        pass
+
+    def to_db(self) -> int:
+        interval: int = TASK_OPTIONS.get('interval')
+        task_info: SpiderTaskInfo = SpiderTaskInfo(timestamp=self.now_utc.timestamp, task_name=self.task_name,
+                                                   task_type=TaskTypeEnum.SUCCESS.value,
+                                                   spider_count=self.count_stations, interval=interval)
+        self.session.add(task_info)
+        self.session.commit()
+        return task_info.id
