@@ -51,6 +51,12 @@ class IModel(BaseMeta):
     gmt_modify_time: Mapped[datetime] = mapped_column(default=datetime.utcnow)
 
 
+class IRealDataDt(BaseMeta):
+    __abstract__ = True
+    gmt_realtime: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+    ts: Mapped[int] = mapped_column(default=0)
+
+
 class StationRealDataIndex(IIdModel, IDel, IModel):
     """
         实况索引表
@@ -63,15 +69,16 @@ class StationRealDataIndex(IIdModel, IDel, IModel):
     __tablename__ = 'station_realdata_index'
 
 
-class StationRealDataSpecific(IIdModel, IDel, IModel):
+class StationRealDataSpecific(IIdModel, IDel, IModel, IRealDataDt):
     """
         海洋站实况表 , 按照 yymm 进行分表
     """
     # 海洋站代码
     station_code: Mapped[str] = mapped_column(default=DEFAULT_CODE)
     # 当前时间
-    gmt_dt: Mapped[datetime] = mapped_column(default=datetime.utcnow)
-    timestamp: Mapped[int] = mapped_column(default=0)
+    # gmt_dt: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+    # gmt_realtime: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+    # gmt_realtime: Mapped[int] = mapped_column(default=0)
     surge: Mapped[float] = mapped_column(default=DEFAULT_SURGE)
     # 所属的 SpiderTaskInfo id
     tid: Mapped[int] = mapped_column(default=0)

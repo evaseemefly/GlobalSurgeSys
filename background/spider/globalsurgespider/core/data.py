@@ -3,6 +3,7 @@ from arrow import Arrow
 import arrow
 from datetime import datetime
 from sqlalchemy import create_engine
+from sqlalchemy import select
 from sqlalchemy.ext.automap import automap_base
 
 from common.enums import TaskTypeEnum
@@ -20,9 +21,11 @@ class StationSurgeRealData:
         实现分表功能
     """
 
-    def __init__(self, station_code: str, list_station_realdata: List[StationRealDataSpecific]):
+    def __init__(self, station_code: str, list_station_realdata: List[StationRealDataSpecific], tid: int):
         self.station_code = station_code
         self.list_station_realdata = list_station_realdata
+        self.tid = tid
+        self.session = DbFactory().Session
         pass
 
     @property
@@ -67,7 +70,7 @@ class StationSurgeRealData:
         return is_created
         pass
 
-    def check_realdata_list(self, station_code: str, to_coverage: bool = False,
+    def check_realdata_list(self, to_coverage: bool = False,
                             realdata_list: List[StationRealDataSpecific] = []) -> bool:
         """
             判断 当前需要插入的数据是否已经存在于 表中，若存在且 to_coverage = True 则进行覆盖
@@ -76,12 +79,14 @@ class StationSurgeRealData:
         :return:
         """
         tab_name: str = self._get_split_tab_name()
+        station_code: str = self.station_code
         if self._check_exist_tab(tab_name):
-            self._insert_realdata(station_code, realdata_list, to_coverage=to_coverage)
+            # 动态更新表名
+            self._insert_realdata(tab_name, station_code, realdata_list, to_coverage=to_coverage)
 
         pass
 
-    def _insert_realdata(self, station_code: str, realdata_list: List[StationRealDataSpecific],
+    def _insert_realdata(self, tab_name: str, station_code: str, realdata_list: List[StationRealDataSpecific],
                          to_coverage: bool = False):
         """
             若 to_coverage = True 则向表中覆盖已存在的数据
@@ -89,12 +94,35 @@ class StationSurgeRealData:
         :param to_coverage:
         :return:
         """
-        dist_stationcodes: set[str] = set([temp.station_code for temp in realdata_list])
-        for dist_station_code in dist_stationcodes:
-            temp_stationcode_realdata = list(filter(lambda o: o['station_code'] == dist_station_code, realdata_list))
+        # dist_stationcodes: set[str] = set([temp.station_code for temp in realdata_list])
+        # for dist_station_code in dist_stationcodes:
+        #     temp_stationcode_realdata = list(filter(lambda o: o['station_code'] == dist_station_code, realdata_list))
+        # 按照 station_code | timestamp | gmt_dt 查询，若存在则批量更新
+        # 动态修改当前的表名
+        StationRealDataSpecific.__table__.name = tab_name
+        query = select(StationRealDataSpecific).where(StationRealDataSpecific.station_code == station_code)
+        if len(self.session.scalars(query).fetchall()) > 0:
+            for station_realdata in self.session.scalars(query):
+                print(station_realdata)
+        else:
+            # 插入
+            for temp_realdata in realdata_list:
+                # ERROR:
+                #     raise AttributeError(f"Use item[{name!r}] to get field value")
+                # AttributeError: Use item['surge'] to get field value
+                obj_realdata = StationRealDataSpecific(station_code=station_code, surge=temp_realdata['surge'],
+                                                       tid=self.tid,
+                                                       gmt_realtime=temp_realdata['dt'],
+                                                       ts=temp_realdata['ts'])
+                self.session.add(obj_realdata)
+                pass
+            self.session.commit()
+            pass
+        pass
 
     def _check_need_split_tab(self, to_create: bool = True) -> bool:
         """
+
             判断是否需要分表，若已存在表是否覆盖
         @param to_create: 是否覆盖
         @return:
@@ -146,7 +174,8 @@ class StationSurgeRealData:
               Column('is_del', TINYINT(1), nullable=False, server_default=text("'0'"), default=0),
               Column('station_code', VARCHAR(200), nullable=False), Column('tid', Integer, nullable=False),
               Column('surge', Float, nullable=False),
-              Column('timestamp', VARCHAR(100), nullable=False),
+              Column('ts', Integer, nullable=False),
+              Column('gmt_realtime', DATETIME(fsp=6), default=datetime.utcnow),
               Column('gmt_create_time', DATETIME(fsp=6), default=datetime.utcnow),
               Column('gmt_modify_time', DATETIME(fsp=6), default=datetime.utcnow))
         db_factory = DbFactory()

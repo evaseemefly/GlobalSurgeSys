@@ -17,7 +17,7 @@ class GlobalsurgespiderPipeline:
     def process_item(self, item: StationSurgeListItem, spider):
         # TODO:[*] 23-02-22 STEP1: 将 items.py -> StationSurgeListItem 批量写入 db
         # TODO:[*] 23-02-22 STEP2: 批量录入后 更新 station_status,可使用装饰器实现
-        print(item)
+        # print(item)
         self.to_db(item)
         return item
 
@@ -34,5 +34,5 @@ class GlobalsurgespiderPipeline:
         # step1: 创建分表
         stationSurge.create_split_tab()
         # step2: 像 station_realdata_specific 表中写入当前实况数据
-        stationSurge.check_realdata_list(station_code, to_coverage=True, realdata_list=list_realdata)
+        stationSurge.check_realdata_list(to_coverage=True, realdata_list=list_realdata)
         pass
