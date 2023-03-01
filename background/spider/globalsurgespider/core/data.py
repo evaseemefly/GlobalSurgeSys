@@ -3,8 +3,9 @@ from arrow import Arrow
 import arrow
 from datetime import datetime
 from sqlalchemy import create_engine
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.automap import automap_base
+import sqlalchemy
 
 from common.enums import TaskTypeEnum
 from models.models import StationRealDataSpecific, SpiderTaskInfo
@@ -100,24 +101,59 @@ class StationSurgeRealData:
         # 按照 station_code | timestamp | gmt_dt 查询，若存在则批量更新
         # 动态修改当前的表名
         StationRealDataSpecific.__table__.name = tab_name
-        query = select(StationRealDataSpecific).where(StationRealDataSpecific.station_code == station_code)
-        if len(self.session.scalars(query).fetchall()) > 0:
-            for station_realdata in self.session.scalars(query):
-                print(station_realdata)
-        else:
-            # 插入
-            for temp_realdata in realdata_list:
-                # ERROR:
-                #     raise AttributeError(f"Use item[{name!r}] to get field value")
-                # AttributeError: Use item['surge'] to get field value
-                obj_realdata = StationRealDataSpecific(station_code=station_code, surge=temp_realdata['surge'],
-                                                       tid=self.tid,
-                                                       gmt_realtime=temp_realdata['dt'],
-                                                       ts=temp_realdata['ts'])
-                self.session.add(obj_realdata)
-                pass
-            self.session.commit()
-            pass
+        # 根据 station_code | gmt_start < gmt_realitime < gmt_end 过滤结果
+        # 对于要插入的集合进行遍历
+        # -> S1: station_code | gmt_realtime | ts 存在 则 update
+        # -> s2: station_code | gmt_realtime | ts 不存在 则 create
+        query = select(StationRealDataSpecific).where(StationRealDataSpecific.station_code == station_code).where(
+            StationRealDataSpecific.gmt_realtime > self.gmt_start).where(
+            StationRealDataSpecific.gmt_realtime < self.gmt_end)
+        # 插入
+        for temp_realdata in realdata_list:
+            # ERROR:
+            #     raise AttributeError(f"Use item[{name!r}] to get field value")
+            # AttributeError: Use item['surge'] to get field value
+            # 判断是否存在
+            temp_query = query.where(StationRealDataSpecific.gmt_realtime == temp_realdata['dt'])
+            temp_now: datetime = datetime.utcnow()
+            try:
+                temp_query = self.session.scalars(temp_query).fetchall()
+                if len(temp_query) > 0:
+                    # update
+                    self.session.execute(
+                        update(StationRealDataSpecific).where(
+                            StationRealDataSpecific.station_code == station_code).where(
+                            StationRealDataSpecific.gmt_realtime == temp_realdata['dt']).values(
+                            surge=temp_realdata['surge'], gmt_modify_time=temp_now)).execute_options(
+                        synchronize_session="evaluate")
+                else:
+                    obj_realdata = StationRealDataSpecific(station_code=station_code, surge=temp_realdata['surge'],
+                                                           tid=self.tid,
+                                                           gmt_realtime=temp_realdata['dt'],
+                                                           ts=temp_realdata['ts'])
+                    self.session.add(obj_realdata)
+            except Exception as ex:
+                print(ex.args)
+        # 23-03-01 以下暂时去掉
+        # if len(self.session.scalars(query).fetchall()) > 0:
+        #     for station_realdata in self.session.scalars(query):
+        #         print(station_realdata)
+        # else:
+        #
+        #     # 插入
+        #     for temp_realdata in realdata_list:
+        #         # ERROR:
+        #         #     raise AttributeError(f"Use item[{name!r}] to get field value")
+        #         # AttributeError: Use item['surge'] to get field value
+        #         obj_realdata = StationRealDataSpecific(station_code=station_code, surge=temp_realdata['surge'],
+        #                                                tid=self.tid,
+        #                                                gmt_realtime=temp_realdata['dt'],
+        #                                                ts=temp_realdata['ts'])
+        #         self.session.add(obj_realdata)
+        #         pass
+        #
+        #     pass
+        self.session.commit()
         pass
 
     def _check_need_split_tab(self, to_create: bool = True) -> bool:
@@ -136,11 +172,12 @@ class StationSurgeRealData:
     def _get_split_tab_name(self) -> str:
         """
             获取分表名称
+            按照结束时间生成表名
             eg: gmt_start 2023-02-26 xxx_202302
         @return: 分表名称 eg: station_realdata_specific_202302
         """
         tab_base_name: str = DB_TABLE_SPLIT_OPTIONS.get('station').get('tab_split_name')
-        tab_dt_name: str = self.gmt_start.format('YYYYMM')
+        tab_dt_name: str = self.gmt_end.format('YYYYMM')
         tab_name: str = f'{tab_base_name}_{tab_dt_name}'
         return tab_name
 

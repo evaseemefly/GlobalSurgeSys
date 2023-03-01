@@ -29,7 +29,7 @@ class GlobalstationstatusSpider(scrapy.Spider):
 
     def parse(self, response: XmlResponse):
 
-        print(response)
+        # print(response)
         # utc时间
         now_utc: arrow.Arrow = arrow.Arrow.utcnow()
         date_utc_ymdhm: str = now_utc.format('YYYYMMDDHHmm')
