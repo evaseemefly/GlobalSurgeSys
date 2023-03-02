@@ -46,7 +46,9 @@ class GlobalstationstatusSpider(scrapy.Spider):
         # 取出所有的 point点
         selector_list = sel.xpath('body/featurecollection/featuremember/point')
         # 只取出前5个
-        selector_list = selector_list[:2]
+        # TODO:[*] 23-03-02 测试全部
+        # selector_list = selector_list[:2]
+
         list_station_status: List[dict] = []
         for point in selector_list:
             code = point.xpath('code/text()').get()

@@ -8,7 +8,8 @@ from sqlalchemy.ext.automap import automap_base
 import sqlalchemy
 
 from common.enums import TaskTypeEnum
-from models.models import StationRealDataSpecific, SpiderTaskInfo
+from globalsurgespider.items import StationSurgeListItem
+from models.models import StationRealDataSpecific, SpiderTaskInfo, StationStatus
 from sqlalchemy import ForeignKey, Sequence, MetaData, Table
 from sqlalchemy import Column, Date, Float, ForeignKey, Integer, text
 from sqlalchemy.dialects.mysql import DATETIME, INTEGER, TINYINT, VARCHAR
@@ -71,8 +72,8 @@ class StationSurgeRealData:
         return is_created
         pass
 
-    def check_realdata_list(self, to_coverage: bool = False,
-                            realdata_list: List[StationRealDataSpecific] = []) -> bool:
+    def insert_realdata_list(self, to_coverage: bool = False,
+                             realdata_list: List[StationSurgeListItem] = []) -> bool:
         """
             判断 当前需要插入的数据是否已经存在于 表中，若存在且 to_coverage = True 则进行覆盖
         :param to_coverage:
@@ -87,7 +88,7 @@ class StationSurgeRealData:
 
         pass
 
-    def _insert_realdata(self, tab_name: str, station_code: str, realdata_list: List[StationRealDataSpecific],
+    def _insert_realdata(self, tab_name: str, station_code: str, realdata_list: List[StationSurgeListItem],
                          to_coverage: bool = False):
         """
             若 to_coverage = True 则向表中覆盖已存在的数据
@@ -105,9 +106,10 @@ class StationSurgeRealData:
         # 对于要插入的集合进行遍历
         # -> S1: station_code | gmt_realtime | ts 存在 则 update
         # -> s2: station_code | gmt_realtime | ts 不存在 则 create
-        query = select(StationRealDataSpecific).where(StationRealDataSpecific.station_code == station_code).where(
-            StationRealDataSpecific.gmt_realtime > self.gmt_start).where(
-            StationRealDataSpecific.gmt_realtime < self.gmt_end)
+        # query = select(StationRealDataSpecific).where(StationRealDataSpecific.station_code == station_code).where(
+        #     StationRealDataSpecific.gmt_realtime > self.gmt_start).where(
+        #     StationRealDataSpecific.gmt_realtime < self.gmt_end)
+        query = select(StationRealDataSpecific).where(StationRealDataSpecific.station_code == station_code)
         # 插入
         for temp_realdata in realdata_list:
             # ERROR:
@@ -153,7 +155,13 @@ class StationSurgeRealData:
         #         pass
         #
         #     pass
+
         self.session.commit()
+        # TODO:[-] 23-03-02 写入完当前爬取的 station 潮位后更新 tb:station_status
+        # TODO:[*] 23-03-02 此处修改为根据 realdata_list 找到最近的实况时间
+
+        station_status = StationStatusData(station_code)
+        station_status.insert(TaskTypeEnum.SUCCESS, self.tid, self.gmt_end.datetime)
         pass
 
     def _check_need_split_tab(self, to_create: bool = True) -> bool:
@@ -245,3 +253,35 @@ class SpiderTask:
         self.session.add(task_info)
         self.session.commit()
         return task_info.id
+
+
+class StationStatusData:
+    def __init__(self, station_code: str):
+        self.station_code = station_code
+        self.session = DbFactory().Session
+
+    def insert(self, status: TaskTypeEnum, tid: int, gmt_realtime: datetime):
+        """
+            插入 station_code 更新 gmt_update_dt | status
+        :param status: 状态
+        :param tid: tb: task_info id
+        :param gmt_realtime: 最后的潮位实况时间
+        :return:
+        """
+        # session = self.session
+        now_utc: datetime = datetime.utcnow()
+        # step1: 从 tb: station_status 中查找，若存在则update | 不存在则 create
+        query = select(StationStatus).where(StationStatus.station_code == self.station_code)
+        temp_first = self.session.scalars(query).fetchall()
+        if len(temp_first) > 0:
+            # update
+            # AttributeError: 'CursorResult' object has no attribute 'execute_options'
+            self.session.execute(
+                update(StationStatus).where(StationStatus.station_code == self.station_code).values(
+                    status=status.value,
+                    gmt_realtime=gmt_realtime, gmt_modify_time=now_utc))
+        else:
+            obj_status = StationStatus(station_code=self.station_code, tid=tid, status=status.value,
+                                       gmt_realtime=gmt_realtime)
+            self.session.add(obj_status)
+        self.session.commit()

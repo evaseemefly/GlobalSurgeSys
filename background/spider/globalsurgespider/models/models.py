@@ -115,6 +115,7 @@ class RegionInfo(IIdModel, IDel, IModel):
 class StationStatus(IIdModel, IDel, IModel):
     station_code: Mapped[str] = mapped_column(default=DEFAULT_CODE)
     status: Mapped[int] = mapped_column(nullable=False, default=TaskTypeEnum.FAIL.value)
+    gmt_realtime: Mapped[datetime] = mapped_column(default=datetime.utcnow)
     # 所属的 SpiderTaskInfo id
     tid: Mapped[int] = mapped_column(nullable=False, default=0)
     __tablename__ = 'station_status'

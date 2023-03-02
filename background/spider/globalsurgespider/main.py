@@ -7,14 +7,18 @@ import arrow
 from scrapy.cmdline import execute
 
 
-@repeat(every(2).minutes)
-def execute_global_station():
+@repeat(every(10).minutes)
+def delay_global_station():
     now_utc_str: str = arrow.utcnow().format('YYYYMMDDHHmm')
     print(f'测试定时任务:{now_utc_str}')
     # 方法1:
     subprocess.Popen('scrapy crawl globalStationStatus')
     # 方法2: 此种办法执行结束后会关闭
     # execute('scrapy crawl globalStationStatus'.split())
+
+
+def execute_global_station():
+    execute('scrapy crawl globalStationStatus'.split())
 
 
 def main():
