@@ -15,6 +15,7 @@ from sqlalchemy import ForeignKey, Sequence, MetaData, Table
 from sqlalchemy import Column, Date, Float, ForeignKey, Integer, text
 from sqlalchemy.dialects.mysql import DATETIME, INTEGER, TINYINT, VARCHAR
 from core.db import DbFactory
+from decorators import timer_count
 from conf.settings import TASK_OPTIONS, DB_TABLE_SPLIT_OPTIONS
 
 
@@ -73,6 +74,7 @@ class StationSurgeRealData:
 
         pass
 
+    @timer_count(10)
     def _insert_realdata(self, tab_name: str, station_code: str, realdata_list: List[StationSurgeListItem],
                          to_coverage: bool = False):
         """
@@ -96,6 +98,7 @@ class StationSurgeRealData:
         #     StationRealDataSpecific.gmt_realtime < self.gmt_end)
         query = select(StationRealDataSpecific).where(StationRealDataSpecific.station_code == station_code)
         # 插入
+        print(f'[-]写入{station_code}站点的realdata,count:{len(realdata_list)}中~')
         for temp_realdata in realdata_list:
             # ERROR:
             #     raise AttributeError(f"Use item[{name!r}] to get field value")
@@ -149,11 +152,13 @@ class StationSurgeRealData:
 
         self.session.commit()
         self.session.close()
+        print(f'[-]写入{station_code}站点realdata完毕!')
         # TODO:[-] 23-03-02 写入完当前爬取的 station 潮位后更新 tb:station_status
         # TODO:[*] 23-03-02 此处修改为根据 realdata_list 找到最近的实况时间
 
         station_status = StationStatusData(station_code)
         station_status.insert(TaskTypeEnum.SUCCESS, self.tid, self.gmt_end.datetime)
+        print(f'[-]更新{station_code}站点的status状态~')
         pass
 
     def _check_need_split_tab(self, to_create: bool = True) -> bool:
@@ -283,4 +288,4 @@ class StationStatusData:
                                        gmt_realtime=gmt_realtime)
             self.session.add(obj_status)
         self.session.commit()
-        self.session.close()
+        # self.session.close()

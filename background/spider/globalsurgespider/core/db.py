@@ -1,6 +1,6 @@
 from sqlalchemy import create_engine
 from sqlalchemy.ext.automap import automap_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, scoped_session
 #
 from sqlalchemy import Column, Date, Float, ForeignKey, Integer, text
 from sqlalchemy.dialects.mysql import DATETIME, INTEGER, TINYINT, VARCHAR
@@ -40,12 +40,14 @@ class DbFactory:
         self.engine = create_engine(
             f"mysql+{self.engine_str}://{self.user}:{self.password}@{self.host}:{self.port}/{self.db_name}",
             pool_pre_ping=True, future=True)
-        self._session_def = sessionmaker(bind=self.engine)
+        # TODO:[-] 23-03-03 通过 scoped_session 来提供现成安全的全局session
+        # 参考: https://juejin.cn/post/6844904164141580302
+        self._session_def = scoped_session(sessionmaker(bind=self.engine))
 
     @property
     def Session(self) -> sessionmaker:
         if self._session_def is None:
-            self._session_def = sessionmaker(bind=self.engine)
+            self._session_def = scoped_session(sessionmaker(bind=self.engine))
         return self._session_def()
 
 

@@ -203,7 +203,7 @@ class GlobalstationstatusSpider(scrapy.Spider):
         count: int = 30
         tid = response.meta['tid']
         station_code = response.meta['station_code']
-        list_station_surge: List[dict] = self.station_surge_html2list(response, SPIDER_TITLE_STAMPS)
+        list_station_surge: List[dict] = self.station_surge_html2list(response, SPIDER_TITLE_STAMPS, station_code)
         list_items: List[StationsSurgeItem] = []
         list_station_surge = list_station_surge[::-1][:count]
 
@@ -226,12 +226,14 @@ class GlobalstationstatusSpider(scrapy.Spider):
     def station_test_parse(self, response: HtmlResponse):
         yield print('监听到触发 test parse')
 
-    def station_surge_html2list(self, response: HtmlResponse, list_stamp: List[str] = ['rad']) -> List[dict]:
+    def station_surge_html2list(self, response: HtmlResponse, list_stamp: List[str] = ['rad'],
+                                station_code: str = 'default') -> List[dict]:
         """
             将指定站点的 html -> list 返回
             'http://www.ioc-sealevelmonitoring.org/bgraph.php?code={temp_code}&output=tab&period=0.5'
         :param response:
         :param list_stamp: 匹配 surge 的头文件名称,默认为 'rad'
+        :param station_code: 当前处理的站点 code
         :return:
         """
         # print(response)
@@ -309,9 +311,10 @@ class GlobalstationstatusSpider(scrapy.Spider):
             # 将 list_station_red -> dataframe
 
             if len(list_station_rad) > 0:
-                print('处理成功~')
+                print(f'[-]def station_surge_html2list : 处理:{station_code}成功~')
             else:
-                print('处理失败!')
+                print(f'[-]def station_surge_html2list : 处理:{station_code}失败!')
         except Exception as e:
+            print(f'[*]def station_surge_html2list : 处理:{station_code}异常!')
             print(e.args)
         return list_station_rad
