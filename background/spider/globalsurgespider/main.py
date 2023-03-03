@@ -7,7 +7,7 @@ import arrow
 from scrapy.cmdline import execute
 
 
-@repeat(every(10).minutes)
+@repeat(every(30).minutes)
 def delay_global_station():
     now_utc_str: str = arrow.utcnow().format('YYYYMMDDHHmm')
     print(f'测试定时任务:{now_utc_str}')
@@ -21,16 +21,17 @@ def execute_global_station():
     execute('scrapy crawl globalStationStatus'.split())
 
 
+
 def main():
     """
         供pycharm调试使用的入口方法
     :return:
     """
-    # execute('scrapy crawl globalStationStatus'.split())
+    execute('scrapy crawl globalStationStatus -s LOG_FILE=./logs/logs.log'.split())
     # TODO:[-] 23-03-01 此处修改为定时任务
-    while True:
-        run_pending()
-        time.sleep(1)
+    # while True:
+    #     run_pending()
+    #     time.sleep(1)
     pass
 
 

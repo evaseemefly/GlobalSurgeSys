@@ -6,6 +6,7 @@ from sqlalchemy import create_engine
 from sqlalchemy import select, update
 from sqlalchemy.ext.automap import automap_base
 import sqlalchemy
+import numpy as np
 
 from common.enums import TaskTypeEnum
 from globalsurgespider.items import StationSurgeListItem
@@ -36,14 +37,6 @@ class StationSurgeRealData:
             起始时间
         """
 
-        def _sort(x, y):
-            if x < y:
-                return 1
-            elif x > y:
-                return -1
-            else:
-                return 0
-
         # sorted_list = self.list_station_realdata.sort(_sort)
         sorted_list = sorted(self.list_station_realdata, key=lambda station: station['ts'])
         start_ts: Arrow = sorted_list[0]['ts']
@@ -51,14 +44,6 @@ class StationSurgeRealData:
 
     @property
     def gmt_end(self) -> Arrow:
-        def _sort(x, y):
-            if x < y:
-                return 1
-            elif x > y:
-                return -1
-            else:
-                return 0
-
         # 倒叙排列
         sorted_list = sorted(self.list_station_realdata, key=lambda station: station['ts'], reverse=True)
         end_ts: Arrow = sorted_list[0]['ts']
@@ -118,24 +103,30 @@ class StationSurgeRealData:
             # 判断是否存在
             temp_query = query.where(StationRealDataSpecific.gmt_realtime == temp_realdata['dt'])
             temp_now: datetime = datetime.utcnow()
+            surge: float = temp_realdata['surge']
+            if np.isnan(surge):
+                continue
             try:
                 temp_query = self.session.scalars(temp_query).fetchall()
+                # TODO:[*] 23-03-03 注意此处的 surge 有可能为 nan 需要加入判断
+                # surge:int=
                 if len(temp_query) > 0:
                     # update
                     self.session.execute(
                         update(StationRealDataSpecific).where(
                             StationRealDataSpecific.station_code == station_code).where(
                             StationRealDataSpecific.gmt_realtime == temp_realdata['dt']).values(
-                            surge=temp_realdata['surge'], gmt_modify_time=temp_now)).execute_options(
+                            surge=surge, gmt_modify_time=temp_now)).execute_options(
                         synchronize_session="evaluate")
                 else:
-                    obj_realdata = StationRealDataSpecific(station_code=station_code, surge=temp_realdata['surge'],
+                    obj_realdata = StationRealDataSpecific(station_code=station_code, surge=surge,
                                                            tid=self.tid,
                                                            gmt_realtime=temp_realdata['dt'],
                                                            ts=temp_realdata['ts'])
                     self.session.add(obj_realdata)
             except Exception as ex:
                 print(ex.args)
+
         # 23-03-01 以下暂时去掉
         # if len(self.session.scalars(query).fetchall()) > 0:
         #     for station_realdata in self.session.scalars(query):
@@ -157,6 +148,7 @@ class StationSurgeRealData:
         #     pass
 
         self.session.commit()
+        self.session.close()
         # TODO:[-] 23-03-02 写入完当前爬取的 station 潮位后更新 tb:station_status
         # TODO:[*] 23-03-02 此处修改为根据 realdata_list 找到最近的实况时间
 
@@ -250,9 +242,15 @@ class SpiderTask:
         task_info: SpiderTaskInfo = SpiderTaskInfo(timestamp=self.now_utc.timestamp, task_name=self.task_name,
                                                    task_type=TaskTypeEnum.SUCCESS.value,
                                                    spider_count=self.count_stations, interval=interval)
-        self.session.add(task_info)
-        self.session.commit()
-        return task_info.id
+        # with DbFactory().Session as session:
+        task_id: int = -1
+        try:
+            self.session.add(task_info)
+            self.session.commit()
+        finally:
+            task_id = task_info.id
+            self.session.close()
+        return task_id
 
 
 class StationStatusData:
@@ -285,3 +283,4 @@ class StationStatusData:
                                        gmt_realtime=gmt_realtime)
             self.session.add(obj_status)
         self.session.commit()
+        self.session.close()

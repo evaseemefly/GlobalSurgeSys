@@ -64,7 +64,8 @@ class GlobalstationstatusSpider(scrapy.Spider):
         # self.spider_all_station(list_station_status)
         # self.spider_test(list_station_status)
         # 方法1: 目前只能通过此种方法实现
-        # TODO:[*] 23-02-28 将以下代码放置 spider_test 方法中，无法触发 yield -> station_test_parse
+        # TODO:[-] 23-02-28 将以下代码放置 spider_test 方法中，无法触发 yield -> station_test_parse
+        # list_station_status = [{'code': 'palm1', 'status': 'online'}]
         for item_station in list_station_status:
             try:
                 # 判断当前站点的状态,为 online 则执行下一步爬取操作

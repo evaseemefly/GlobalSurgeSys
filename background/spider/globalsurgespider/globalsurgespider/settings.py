@@ -18,6 +18,14 @@ NEWSPIDER_MODULE = 'globalsurgespider.spiders'
 # Obey robots.txt rules
 ROBOTSTXT_OBEY = True
 
+# CRITICAL - 严重错误(critical)
+# ERROR - 一般错误(regular errors)
+# WARNING - 警告信息(warning messages)
+# INFO - 一般信息(informational messages)
+# DEBUG - 调试信息(debugging messages)
+LOG_LEVEL = "WARNING"
+
+
 # Configure maximum concurrent requests performed by Scrapy (default: 16)
 # CONCURRENT_REQUESTS = 32
 
