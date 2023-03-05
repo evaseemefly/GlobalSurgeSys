@@ -1,3 +1,4 @@
+# -*- coding : UTF-8 -*-
 import scrapy
 from scrapy import Request
 from scrapy.selector import Selector
@@ -55,7 +56,7 @@ class GlobalstationstatusSpider(scrapy.Spider):
             # code_str=re.match(code_xml,'')
             status = point.xpath('status/text()').get()
             list_station_status.append({'code': code, 'status': status})
-            print(f'当前状态:code:{code},status:{status}')
+            print(f'now status:code:{code},status:{status}')
         task_info = SpiderTask(now_utc, len(list_station_status), task_name)
         tid = task_info.to_db()
         params_item: dict = {'tid': tid}
@@ -311,10 +312,10 @@ class GlobalstationstatusSpider(scrapy.Spider):
             # 将 list_station_red -> dataframe
 
             if len(list_station_rad) > 0:
-                print(f'[-]def station_surge_html2list : 处理:{station_code}成功~')
+                print(f'[-]def station_surge_html2list : transaction data:{station_code} success~')
             else:
-                print(f'[-]def station_surge_html2list : 处理:{station_code}失败!')
+                print(f'[-]def station_surge_html2list : transaction data:{station_code} fail!')
         except Exception as e:
-            print(f'[*]def station_surge_html2list : 处理:{station_code}异常!')
+            print(f'[*]def station_surge_html2list : transaction data :{station_code} error!')
             print(e.args)
         return list_station_rad

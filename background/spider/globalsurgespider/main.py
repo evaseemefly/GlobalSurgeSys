@@ -1,3 +1,5 @@
+# -*- coding : UTF-8 -*-
+import sys
 import schedule
 import time
 from schedule import every, repeat, run_pending
@@ -7,19 +9,22 @@ import arrow
 from scrapy.cmdline import execute
 
 
+# sys.setdefaultencoding('utf-8')
+
+
 @repeat(every(30).minutes)
 def delay_global_station():
     now_utc_str: str = arrow.utcnow().format('YYYYMMDDHHmm')
-    print(f'测试定时任务:{now_utc_str}')
+    print(f'doing delay task:{now_utc_str}')
     # 方法1:
-    subprocess.Popen('scrapy crawl globalStationStatus')
+    subprocess.Popen('scrapy crawl globalStationStatus -s LOG_FILE=./logs/logs.log'.split()
+                     )
     # 方法2: 此种办法执行结束后会关闭
     # execute('scrapy crawl globalStationStatus'.split())
 
 
 def execute_global_station():
     execute('scrapy crawl globalStationStatus'.split())
-
 
 
 def main():

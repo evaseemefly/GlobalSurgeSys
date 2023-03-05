@@ -98,7 +98,7 @@ class StationSurgeRealData:
         #     StationRealDataSpecific.gmt_realtime < self.gmt_end)
         query = select(StationRealDataSpecific).where(StationRealDataSpecific.station_code == station_code)
         # 插入
-        print(f'[-]写入{station_code}站点的realdata,count:{len(realdata_list)}中~')
+        print(f'[-]inserting {station_code} realdata,count:{len(realdata_list)}~')
         for temp_realdata in realdata_list:
             # ERROR:
             #     raise AttributeError(f"Use item[{name!r}] to get field value")
@@ -152,13 +152,13 @@ class StationSurgeRealData:
 
         self.session.commit()
         self.session.close()
-        print(f'[-]写入{station_code}站点realdata完毕!')
+        print(f'[-]insert:{station_code} realdata over!')
         # TODO:[-] 23-03-02 写入完当前爬取的 station 潮位后更新 tb:station_status
         # TODO:[*] 23-03-02 此处修改为根据 realdata_list 找到最近的实况时间
 
         station_status = StationStatusData(station_code)
         station_status.insert(TaskTypeEnum.SUCCESS, self.tid, self.gmt_end.datetime)
-        print(f'[-]更新{station_code}站点的status状态~')
+        print(f'[-]updated {station_code} status~')
         pass
 
     def _check_need_split_tab(self, to_create: bool = True) -> bool:
@@ -275,17 +275,20 @@ class StationStatusData:
         now_utc: datetime = datetime.utcnow()
         # step1: 从 tb: station_status 中查找，若存在则update | 不存在则 create
         query = select(StationStatus).where(StationStatus.station_code == self.station_code)
-        temp_first = self.session.scalars(query).fetchall()
-        if len(temp_first) > 0:
-            # update
-            # AttributeError: 'CursorResult' object has no attribute 'execute_options'
-            self.session.execute(
-                update(StationStatus).where(StationStatus.station_code == self.station_code).values(
-                    status=status.value,
-                    gmt_realtime=gmt_realtime, gmt_modify_time=now_utc))
-        else:
-            obj_status = StationStatus(station_code=self.station_code, tid=tid, status=status.value,
-                                       gmt_realtime=gmt_realtime)
-            self.session.add(obj_status)
-        self.session.commit()
+        try:
+            temp_first = self.session.scalars(query).fetchall()
+            if len(temp_first) > 0:
+                # update
+                # AttributeError: 'CursorResult' object has no attribute 'execute_options'
+                self.session.execute(
+                    update(StationStatus).where(StationStatus.station_code == self.station_code).values(
+                        status=status.value,
+                        gmt_realtime=gmt_realtime, gmt_modify_time=now_utc))
+            else:
+                obj_status = StationStatus(station_code=self.station_code, tid=tid, status=status.value,
+                                           gmt_realtime=gmt_realtime)
+                self.session.add(obj_status)
+            self.session.commit()
+        except Exception as ex:
+            print(f'status insert error!msg:{ex.args}')
         # self.session.close()
