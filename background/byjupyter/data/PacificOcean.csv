@@ -1,0 +1,174 @@
+﻿code,location,city,country,lat,lon
+waka,Wakkanai,稚内港-北海道稚内市,Japan,45.41,141.69
+abas,Abashiri,网走港-北海道网走市,Japan,44.02,144.29
+hana,Hanasaki,北海道根室市,Japan,43.28,145.57
+kush,Kushiro,北海道钏路市,Japan,42.98,144.37
+hako,Hakodate,北海道函馆市,Japan,41.78,140.72
+fuka,Fukaura,深浦,Japan,40.65,139.93
+ofun,Ofunato,大船渡港,Japan,39.02,141.75
+sado,Sado,佐渡,Japan,38.32,138.52
+noto,Noto,诺托,Japan,37.5,137.16
+toya,Toyama,富山县富山市富山港,Japan,36.76,137.22
+mera,Mera,千叶县馆山市,Japan,34.92,139.83
+omae,Omaezaki,御前崎港,Japan,34.61,138.22
+kusm,Kushimoto,串本町,Japan,33.48,135.77
+saig,Saigo,埼吾,Japan,36.2,133.33
+hmda,Hamada,滨田港,Japan,34.9,132.07
+tosa,Tosashimizu,高知县土佐清水,Japan,32.78,132.96
+naga,Nagasaki,长崎市,Japan,32.74,129.87
+abur,Aburatsu,油津港,Japan,31.58,131.41
+naha,Naha_Okinawa,那霸市,Japan,26.2133,127.6653
+ishi,Ishigakijima,石垣岛,Japan,24.3322,124.1636
+busa,Busan,釜山,SouthernKorea,35.093056,129.0375
+curri,Currimao,古里茂,Philippines,18.016667,120.483333
+subi,Subic_Bay,苏比克湾,Philippines,14.8167,120.2833
+mani,Manila,马尼拉,Philippines,14.5822,120.9716
+luba,Lubang,鹿邦岛,Philippines,13.818444,120.202225
+lega,Legaspi,黎牙实比,Philippines,13.146214,123.758117
+davo,Davao,达沃,Philippines,7.1537,125.6629
+quin,QuiNhon,归仁市,VietNam,13.7751,109.2543
+vtau,Vung Tau,头顿市,VietNam,10.34,107.071
+darw,Darwin,达尔文市,Australia,-12.4719,130.8458
+brom,Broome,布鲁明,Australia,-18.0008,122.2186
+phcp,PortHedland,黑德兰港,Australia,-20.04,118.42
+pmur,PtMurat,埃克斯茅斯,Australia,-21.8167,114.191
+cuvie/capc,CapeCuvierWharf,卡维尔角港,Australia,-24.2206,113.3969
+gpab,Geraldton,杰拉尔顿,Australia,-28.7631,114.5647
+hill,HillarysHarbor,希拉瑞斯码头,Australia,-31.8255,115.7386
+espe,Esperance,埃斯佩兰斯港,Australia,-33.8709,121.8954
+thev,Thevenard,泰弗纳德,Australia,-32.1489,133.6413
+porl,Portland,波特兰港,Australia,-38.3434,141.6132
+barn,BurnieTasmania,伯尼港,Australia,-41.0501,145.915
+sprg,SpringBay,春天湾,Australia,-42.5459,147.9327
+bapj,BatteryPoint,炮台岬,Australia,-42.8923,147.338
+spjy,SouthportJetty,绍斯波特栈桥,Australia,-43.4333,146.9748
+tbwc,TwofoldBay,澳洲二倍湾,Australia,-37.1003,149.9266
+pkem,PortKembla,肯布拉港,Australia,-34.4738,150.9119
+gcsb,GoldCoastSandBypass Jetty,黄金海岸,Australia,-27.9387,153.4326
+ross,RosslynBay,罗斯林湾,Australia,-23.161,150.7902
+ferg,CapeFerguson,弗格森角,Australia,-19.2773,147.0584
+lirf,LihouReef,利胡环礁,Australia,-17.133,152.145
+trst,Torres_Strait,托雷斯海峡,Australia,-10.5865,142.2219
+groo,Groote Eylandt,格鲁特岛,Australia,-13.86,136.4158
+lomb,Lombrum_Manus_Is_PG,马努斯岛,PapuaNewGuinea,-2.0421,147.3737
+tare,Tarekukure_Wharf,所罗门群岛码头,SolomonIslands,-6.6928,156.4086
+solo/honb,Honiara,霍尼亚拉港,SolomonIslands,-9.4289,159.9555
+lata,Lata_Wharf_SB,拉塔码头,SolomonIslands,-10.7208,165.8019
+luga,Luganville,卢干维尔,Vanuatu,-15.5156,167.1886
+litz,"Litzlitz, Malekula",丽思,Vanuatu,-16.11283,167.44397
+vanu,Malakula,马拉库拉岛,Vanuatu,-17.7553,168.3077
+lena,"Lenakel, Tanna",伦纳克尔,Vanuatu,-19.53256,169.265953
+hien,Hienghene (New Caledonia),延根,France,-20.69283333,164.9421667
+thio,Thio,硫代,France,-21.613805,166.241528
+ouin,OuinneNew Caledonia,新咯里多尼亚,France,-21.9828778,166.6832765
+numbo,NouméaNumbo (New Caledonia),努美阿,France,-22.2466,166.4116
+ouve,Ouvea,乌韦阿岛,France,-20.549816,166.561867
+lifo,Lifou,利富岛,France,-20.91847222,167.2786944
+vati,"Vatia, Viti Levu",维提岛,FijiIslands,-17.3978066,177.7611542
+levu,Lautoka,劳托卡港,FijiIslands,-17.6049,177.4383
+viti,Suva_Viti_Levu_FJ,苏瓦,FijiIslands,-18.1342,178.4236
+upol,Apia_Upolu_WS,阿皮亚,IndependentStateofWesternSamoa,-13.8268,-171.7613
+pago,Pago_Pago_AS,帕果帕果,USASamoa,-14.2766,-170.6907
+ncpt,North_Cape,北岬角,NewZealand,-34.41,173.05
+gbit,Great_Barrier_Is,大堡礁,NewZealand,-36.189,175.4889
+auct,Auckland_NZ,奥克兰,NewZealand,-36.8314,174.7865
+mnkt,Manukau,马努考,NewZealand,-37.0466,174.5117
+taut,Port of Tauranga,陶朗加港,NewZealand,-37.6410885,176.1811791
+lott,East Cape,东岬角,NewZealand,-37.5503,178.159
+gist,Gisborne,吉斯伯恩,NewZealand,-38.6754097,178.0228774
+napt,Port Napier,纳皮尔港,NewZealand,-39.4756612,176.920066
+cpit,Castlepoint,城堡角,NewZealand,-40.89929,176.2316763
+wlgt,Wellington,惠灵顿,NewZealand,-41.2846217,174.7790967
+chst,Charleston,查尔斯顿,NewZealand,-41.9032,171.4338
+kait,Kaikoura,凯库拉,NewZealand,-42.4129,173.7028
+sumt,Christchurch,基督城,NewZealand,-43.5696,172.7732
+jack,Jackson Bay,杰克森湾,NewZealand,-43.9733,168.6161
+otat,Dunedin,达尼丁,NewZealand,-45.8143,170.6294
+puyt,Puysegur Welcome Bay,陶兰加,NewZealand,-46.0847836,166.5894083
+chit,"Owenga, Chatham Island",查塔姆岛,NewZealand,-44.0247,-176.3688
+quepo,Quepos,克波斯,CostaRica,9.4255,-84.1702
+psjs,Puerto San Juan del Sur,南圣胡安,Nicaragua,11.251,-85.875
+psdn,Puerto Sandino,圣蒂诺港;,Nicaragua,12.2011111,-86.7644444
+laun,La_Union_SV,拉乌尼翁港,ElSalvador,13.3093,-87.8181
+lalb,La Libertad,拉利贝塔德港,ElSalvador,13.4851,-89.319
+acaj,Acajutla_SV,阿卡胡特拉港,ElSalvador,13.573792,-89.838128
+made,"Puerto Madero, Chis.",马德罗港,Mexico,14.712353,-92.401175
+sali2,"Salina Cruz, Oax.",萨利纳克鲁斯(,Mexico,16.168436,-95.196842
+huat2,Huatulco,瓦图尔科,Mexico,15.7500556,-96.1168889
+ptan2,Puerto Angel,安赫尔港,Mexico,15.6666667,-96.4916667
+acap2,Acapulco API,阿卡普尔科,Mexico,16.8379333,-99.903
+zihu2,Zihuatanejo2,芝华塔尼欧,Mexico,17.6361833,-101.5581833
+laza2,Lázaro Cárdenas2,拉萨罗卡德纳斯,Mexico,17.939856,-102.178053
+mnza,Manzanillo,曼萨尼约,Mexico,19.06055,-104.3005333
+puert,Puerto Vallarta,巴亚尔塔港,Mexico,20.6579333,-105.2428667
+maza2,Mazatlán2,马萨特兰港,Mexico,23.1814167,-106.4238667
+lpaz2,La Paz2, 拉巴斯,Mexico,24.2673167,-110.3328333
+tuxp2,Tuxpan,图斯潘,Mexico,20.96355,-97.3286
+vera2,"Veracruz, Ver.",韦拉克鲁斯,Mexico,19.192061,-96.123553
+alva2,Alvarado2,阿尔瓦拉多,Mexico,18.76615,95.75595
+smag2,Sánchez Magallanes2,桑切斯,Mexico,18.2967667,-93.85455
+ccar,"Ciudad del Cármen, Camp.",卡门城,Mexico,18.63605,-91.83615
+camt,Lerma Campeche,坎佩切,Mexico,19.811985,-90.594916
+sisa,Sisal,西撒尔,Mexico,21.1616667,-90.0483333
+telc,Telchac,特查克港,Mexico,21.34,-89.308333
+imuj2,Isla Mujeres2,穆赫雷斯岛,Mexico,21.2546667,-86.7460833
+pumo2,Puerto Morelos,莫雷洛斯港,Mexico,20.86813,-86.86684
+clst,"Celestun, Yuc",塞莱斯顿,Mexico,20.864506,-90.405121
+sand,San_Diego_CA,圣地亚哥,USA,32.713,-117.173
+lajo2,La_Jolla_CA,拉由拉市,USA,32.867,-117.258
+losa,Los_Angeles_CA,洛杉矶,USA,33.719,-118.272
+pslu,Port_San_Luis_CA,圣路易斯港,USA,35.168,-120.753
+mont2,Monterey,蒙特利,USA,36.605,-121.8867
+alam,Alameda_CA,阿拉米达市,USA,37.772,-122.298
+fpnt,"Ft_Point,San_Fran",旧金山市,USA,37.807,-122.465
+aren2,Arena_Cove_CA,竞技谷区,USA,38.913,-123.705
+nspi2,"North_Spit, Humboldt",洪堡,USA,40.767,-124.217
+cres,Crescent_City_CA,新月城,USA,41.745,-124.183
+char,"Charleston, OR",查尔斯顿,USA,43.345,-124.3217
+sbea2,South_Beach_OR,南海滩,USA,44.625,-124.043
+asto2,Astoria_OR,阿斯托里亚,USA,46.208,-123.767
+wpwa,"Westport, WA",西港,USA,46.9083,-124.11
+epme2,East_Port_ME,东港,USA,44.9033,-66.985
+cwme2,"Cutler Farris Wharf, ME",费里斯卡特勒码头,USA,44.656667,-67.21
+bame2,Bar_Harbor_ME,巴港,USA,44.3916,-68.205
+ptme,Portland_ME,波特兰,USA,43.6566,-70.2466
+boma,Boston_MA,波士顿,USA,42.355,-71.0516
+wood2,"Woods Hole, MA",伍兹霍尔,USA,41.5233,-70.6717
+mony2,"Montauk, NY",蒙托克,USA,41.0483,-71.96
+bgct2,Bridgeport_CT,布里奇波特,USA,41.1733,-73.1816
+btny2,Battery_The_NY,巴特里,USA,40.7,-74.02
+acnj2,Atlantic_City_NJ,大西洋城,USA,39.355,-74.4183
+cmnj2,Cape_May_NJ,开普梅,USA,38.9683,-74.96
+bamd2,Baltimore_MD,巴尔的摩,USA,39.267,-76.578
+cbmd2,Cambridge_MD,坎布里奇,USA,38.5733,-76.0683
+dpnc,Duck_Pier_NC,达克码头,USA,36.1833,-75.7466
+benc2,Beaufort_NC,波福,USA,34.72,-76.67
+fpga2,Fort_Pulaski_GA,普拉斯基堡,USA,32.033,-80.902
+fbfl2,Fernadina_Beach_FL,费南迪纳海滩,USA,30.672,-81.465
+fmfl2,Fort_Myers_FL, 梅尔斯堡,USA,26.65,-81.87
+cwfl2,Clearwater_Beach_FL,克利尔沃特,USA,27.978,-82.832
+apfl2,Apalachicola_FL,阿巴拉契科拉,USA,29.727,-84.982
+pnfl2,Pensacola_FL,彭萨科拉港,USA,30.403,-87.212
+dial,Dauphin_Island_AL,多芬岛,USA,30.2,-88.1
+wlms,"Bay Waveland Yacht Club, MS",韦夫兰,USA,30.3264,-89.3258
+psla2,"Pilots Station East, SW Pass, LA",洛杉矶引航站东,USA,28.9317,-89.4067
+gila,"Grand Isle, LA",格兰德岛,USA,29.2633,-89.9567
+apla2,"Lawma, Amerada Pass, LA",,USA,29.4496,-91.3381
+cpla,"Calcasieu Pass, LA",卡尔克苏帕斯,USA,29.7682,-93.3429
+gptx,Galveston_Pier_TX,加尔维斯顿港,USA,29.31,-94.793
+cctx2,"Corpus Christi, TX",科珀斯克里斯蒂,USA,27.58,-97.2167
+lime2,Limetree_VI,美属维京群岛菩提树,USA,17.6947,-64.7538
+stcr2,St_Croix_VI,美属维京群岛圣克鲁瓦,USA,17.74666,-64.69833
+lame,LameshurBayStJohnVI,圣约翰岛,USA,18.3182,-64.7242
+amal2,Charlotte-Amalie_VI,夏洛特阿马利亚,USA,18.335,-64.92
+cule2,Culebra_Is_PR,库莱布拉,USA,18.3008,-65.3028
+isab,Isabel Segunda,伊莎贝尔二世镇,PuertoRico,18.150278,-65.435
+vieq2,Vieques_PR,别克斯岛,USA,18.0939,-65.4714
+faja,Fajardo_PR,法哈多,PuertoRico,18.3336,-65.6311
+yabu,"Yabucoa Harbor, PR",亚武科阿港,USA,18.0551,-65.833
+sanj2,San_Juan_PR,圣胡安,USA,18.4617,-66.1167
+stdpr,"Salinas, Puerto Rico",萨莱纳,PuertoRico,17.949063,-66.225967
+aracS,Arecibo ,阿雷西博,PuertoRico,18.4805,-66.7024
+gtdpr,"Guayanilla, Puerto Rico",瓜亚尼亚港,PuertoRico,18.005219,-66.766697
+maya,Mayaguez_PR,马亚圭斯,PuertoRico,18.2176,-67.1588
+mona2,Mona_Island_PR,莫娜岛,USA,18.09,-67.9383
