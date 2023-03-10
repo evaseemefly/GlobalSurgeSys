@@ -1,6 +1,6 @@
-from sqlalchemy.orm import Session
 from models.models import StationStatus
 from sqlalchemy import select, update
+from sqlalchemy.orm import Session
 from dao.base import BaseDao
 
 
@@ -12,7 +12,12 @@ class StationStatusDao(BaseDao):
         :param is_del:
         :return:
         """
-        session = self.session
-        filter_condition = select(StationStatus).where(StationStatus.is_del == is_del)
-        query = session.execute(filter_condition)
-        return session.scalar(query).fetchall()
+        session: Session = self.db.session
+        # filter_condition = select(StationStatus).where(StationStatus.is_del == is_del)
+
+        # query = session.execute(filter_condition)
+        # sqlalchemy.exc.ArgumentError: Executable SQL or text() construct expected, got <sqlalchemy.engine.result.ChunkedIteratorResult object at 0x0000021B539E2C08>.
+        # return session.scalars(filter_condition)
+
+        filter_query = session.query(StationStatus).filter(StationStatus.is_del == False).all()
+        return filter_query

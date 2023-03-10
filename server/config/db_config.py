@@ -1,16 +1,16 @@
-class DBConfig(object):
+class DBConfig:
     """
     DbConfig DB配置类
     :version: 1.4
     :date: 2020-02-11
     """
 
-    driver = 'mysql+pymysql'
-    host = 'mariadb'
+    driver = 'mysql+mysqldb'
+    host = '127.0.0.1'
     port = '3306'
     username = 'root'
-    password = ''
-    database = ''
+    password = '123456'
+    database = 'surge_global_sys'
     charset = 'utf8mb4'
     table_name_prefix = ''
     echo = True

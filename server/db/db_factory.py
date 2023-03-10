@@ -8,7 +8,7 @@ class DBFactory:
         + 23-03-09 数据库工厂类
     """
     session: Session = None
-    default_config: DBConfig = None
+    default_config: DBConfig = DBConfig()
 
     def __init__(self, config: DBConfig = None):
         if not config:
@@ -25,7 +25,8 @@ class DBFactory:
             echo=config.echo
         )
 
-        session_factory = sessionmaker(autocommit=True, autoflush=False, bind=engine)
+        # TODO:[-] 23-03-10 sqlalchemy.exc.ArgumentError: autocommit=True is no longer supported
+        session_factory = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
         # scoped_session封装了两个值 Session 和 registry,registry加括号就执行了ThreadLocalRegistry的__call__方法,
         # 如果当前本地线程中有session就返回session,没有就将session添加到了本地线程

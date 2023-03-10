@@ -4,10 +4,12 @@ from sqlalchemy import ForeignKey
 from sqlalchemy import String
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.orm import Mapped
-from sqlalchemy import ForeignKey, Sequence, MetaData
+# from sqlalchemy import ForeignKey, Sequence, MetaData
+from sqlalchemy import Column, Date, Float, ForeignKey, Integer, text
+from sqlalchemy.dialects.mysql import DATETIME, INTEGER, TINYINT, VARCHAR
 from sqlalchemy.orm import mapped_column, DeclarativeBase
 from datetime import datetime
-from core.db import DbFactory
+from db.db_factory import DBFactory
 
 from common.default import DEFAULT_FK, UNLESS_INDEX, NONE_ID, DEFAULT_CODE, DEFAULT_PATH_TYPE, DEFAULT_PRO, \
     UNLESS_RANGE, DEFAULT_TABLE_NAME, DEFAULT_YEAR, DEFAULT_SURGE, DEFAULT_NAME, DEFAULT_COUNTRY_INDEX
@@ -113,12 +115,28 @@ class RegionInfo(IIdModel, IDel, IModel):
 
 
 class StationStatus(IIdModel, IDel, IModel):
+# class StationStatus(BaseMeta):
+    """
+        TODO:[*] 23-03-10 此处会与 fastapi pydantic 中的 schema 发生冲突，尝试更换为1.4的写法
+    """
     station_code: Mapped[str] = mapped_column(default=DEFAULT_CODE)
     status: Mapped[int] = mapped_column(nullable=False, default=TaskTypeEnum.FAIL.value)
-    gmt_realtime: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+    # gmt_realtime: Mapped[datetime] = mapped_column(default=datetime.utcnow)
     # 所属的 SpiderTaskInfo id
     tid: Mapped[int] = mapped_column(nullable=False, default=0)
+    # -----
+    # id = Column(Integer, primary_key=True)
+    # station_code = Column(VARCHAR, nullable=False, default=0)
+    # status = Column(Integer, nullable=False, default=0)
+    # tid = Column(Integer, nullable=False, default=0)
+    # is_del = Column(TINYINT(1), nullable=False, default=0)
     __tablename__ = 'station_status'
+
+    # class Config:
+    #     orm_mode = True
+
+    def __repr__(self):
+        return f'code:{self.station_code},tid:{self.tid}|{self.status}'
 
 
 class CommonDict(IIdModel, IDel, IModel):
