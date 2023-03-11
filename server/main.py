@@ -20,6 +20,8 @@ def init_app():
     )
 
     for url in urls.urlpatterns:
+        # prefix:  '/station/status'
+        # tags: ['海洋站状态']
         app.include_router(url["ApiRouter"], prefix=url["prefix"], tags=url["tags"])
     return app
 

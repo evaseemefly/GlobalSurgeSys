@@ -13,6 +13,7 @@ class StationStatusSchema(BaseModel):
     # gmt_modify_time: datetime
     tid: int
     is_del: bool
+    gmt_realtime: datetime
 
     # TODO:[-] 23-03-10 sqlalchemy 不返回字典，而pydantic 需要字典，则需要通过设置 orm 参数通过 orm对象的属性查找而不通过字典查找!
     class Config:

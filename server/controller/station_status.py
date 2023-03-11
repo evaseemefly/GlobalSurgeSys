@@ -10,7 +10,7 @@ app = APIRouter()
 
 # @app.get('/station/status/all', response_model = List[StationStatusSchema])
 
-@app.get('/station/status/all', response_model=List[StationStatusSchema])
+@app.get('/all', response_model=List[StationStatusSchema])
 def get_all_station_status():
     station_res = StationStatusDao().get_all_station_status()
     # for temp in station_res:
@@ -39,3 +39,9 @@ def get_all_station_status():
     # ...
     # temp_station_dict = {**temp_station}
     return list_stations
+
+
+@app.get('/one/{station_code}', response_model=StationStatusSchema)
+def get_one_station_status(station_code: str):
+    station_one: StationStatus = StationStatusDao().get_one_station_status(station_code)
+    return station_one
