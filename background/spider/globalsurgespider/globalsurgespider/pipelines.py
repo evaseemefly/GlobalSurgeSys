@@ -33,7 +33,7 @@ class GlobalsurgespiderPipeline:
         tid: int = item['tid']
         stationSurge = StationSurgeRealData(station_code, list_realdata, tid)
         # step1: 创建分表
-        stationSurge.create_split_tab()
+        # stationSurge.create_split_tab()
         # step2: 像 station_realdata_specific 表中写入当前实况数据
         stationSurge.insert_realdata_list(to_coverage=True, realdata_list=list_realdata)
         pass

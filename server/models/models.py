@@ -9,12 +9,16 @@ from sqlalchemy import Column, Date, Float, ForeignKey, Integer, text
 from sqlalchemy.dialects.mysql import DATETIME, INTEGER, TINYINT, VARCHAR
 from sqlalchemy.orm import mapped_column, DeclarativeBase
 from datetime import datetime
+from arrow import Arrow
 from db.db_factory import DBFactory
 
 from common.default import DEFAULT_FK, UNLESS_INDEX, NONE_ID, DEFAULT_CODE, DEFAULT_PATH_TYPE, DEFAULT_PRO, \
     UNLESS_RANGE, DEFAULT_TABLE_NAME, DEFAULT_YEAR, DEFAULT_SURGE, DEFAULT_NAME, DEFAULT_COUNTRY_INDEX
 
 from common.enums import TaskTypeEnum
+from common.utils import get_split_tablename
+# 配置文件
+from config.tb_config import DB_TABLE_SPLIT_OPTIONS
 
 
 # 1.3 -> 2.0 版本
@@ -86,6 +90,20 @@ class StationRealDataSpecific(IIdModel, IDel, IModel, IRealDataDt):
     tid: Mapped[int] = mapped_column(default=0)
     __tablename__ = 'station_realdata_specific'
 
+    @classmethod
+    def get_split_tablename(dt: datetime) -> str:
+        return get_split_tablename(dt)
+
+    @classmethod
+    def set_tablename(self, dt: datetime):
+        """
+            根据传入的 dt 动态设置当前表名
+        @param dt:
+        @return:
+        """
+        tab_name: str = self.get_split_tablename(dt)
+        self.__table__.name = tab_name
+
 
 class StationInfo(IIdModel, IDel, IModel):
     station_name: Mapped[str] = mapped_column(default=DEFAULT_NAME)
@@ -115,7 +133,7 @@ class RegionInfo(IIdModel, IDel, IModel):
 
 
 class StationStatus(IIdModel, IDel, IModel):
-# class StationStatus(BaseMeta):
+    # class StationStatus(BaseMeta):
     """
         TODO:[*] 23-03-10 此处会与 fastapi pydantic 中的 schema 发生冲突，尝试更换为1.4的写法
     """

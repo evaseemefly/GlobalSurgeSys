@@ -19,5 +19,16 @@ class StationStatusSchema(BaseModel):
     class Config:
         orm_mode = True
 
-    # class Config:
-    #     orm_model = True
+
+class StationSurgeSchema(BaseModel):
+    """
+        潮位实况 Schema
+    """
+    station_code: str
+    surge: float
+    tid: int
+    gmt_realtime: datetime
+    ts: int
+
+    class Config:
+        orm_mode = True

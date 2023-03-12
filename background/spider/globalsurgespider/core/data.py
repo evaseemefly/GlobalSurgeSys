@@ -66,11 +66,34 @@ class StationSurgeRealData:
         :param realdata_list:
         :return:
         """
-        tab_name: str = self._get_split_tab_name()
-        station_code: str = self.station_code
-        if self._check_exist_tab(tab_name):
-            # 动态更新表名
-            self._insert_realdata(tab_name, station_code, realdata_list, to_coverage=to_coverage)
+        # TODO:[*] 23-03-12 注意此处需要根据插入的数据进行判断，是否需要跨表插入
+        # 注意此处为 scrapy.Item 不能直接通过 obj.xx 需要通过 obj.get('xx') 获取
+        months_list: List[int] = [temp.get('dt').month for temp in realdata_list]
+
+        def _filter_month(val_realdata, month: int) -> bool:
+            return val_realdata.dt.month == month
+
+        months_set = set(months_list)
+        # eg {month:int,realdate:List}
+        list_distmonth_realdata = []
+        # {month:realdata_list}
+        dict_distmonth_realdata: dict = {}
+        # 若当前爬取的实况跨月，则需要按照不同的月份进行分表
+        for temp_month in months_set:
+            dict_distmonth_realdata[temp_month] = []
+            for temp_realdata in realdata_list:
+                if temp_realdata.get('dt').month == temp_month:
+                    dict_distmonth_realdata[temp_month].append(temp_realdata)
+
+        for temo_month, temp_realdata_list in dict_distmonth_realdata.items():
+            # temp_realdata_dict
+            # 取出第一个
+            now_arrow: Arrow = temp_realdata_list[0].get('dt')
+            tab_name: str = self._get_split_tab_name(now_arrow)
+            station_code: str = self.station_code
+            if self._check_exist_tab(tab_name):
+                # 动态更新表名
+                self._insert_realdata(tab_name, station_code, realdata_list, to_coverage=to_coverage)
 
         pass
 
@@ -99,6 +122,7 @@ class StationSurgeRealData:
         query = select(StationRealDataSpecific).where(StationRealDataSpecific.station_code == station_code)
         # 插入
         print(f'[-]inserting {station_code} realdata,count:{len(realdata_list)}~')
+
         for temp_realdata in realdata_list:
             # ERROR:
             #     raise AttributeError(f"Use item[{name!r}] to get field value")
@@ -130,26 +154,6 @@ class StationSurgeRealData:
             except Exception as ex:
                 print(ex.args)
 
-        # 23-03-01 以下暂时去掉
-        # if len(self.session.scalars(query).fetchall()) > 0:
-        #     for station_realdata in self.session.scalars(query):
-        #         print(station_realdata)
-        # else:
-        #
-        #     # 插入
-        #     for temp_realdata in realdata_list:
-        #         # ERROR:
-        #         #     raise AttributeError(f"Use item[{name!r}] to get field value")
-        #         # AttributeError: Use item['surge'] to get field value
-        #         obj_realdata = StationRealDataSpecific(station_code=station_code, surge=temp_realdata['surge'],
-        #                                                tid=self.tid,
-        #                                                gmt_realtime=temp_realdata['dt'],
-        #                                                ts=temp_realdata['ts'])
-        #         self.session.add(obj_realdata)
-        #         pass
-        #
-        #     pass
-
         self.session.commit()
         self.session.close()
         print(f'[-]insert:{station_code} realdata over!')
@@ -161,28 +165,29 @@ class StationSurgeRealData:
         print(f'[-]updated {station_code} status~')
         pass
 
-    def _check_need_split_tab(self, to_create: bool = True) -> bool:
+    def _check_need_split_tab(self, dt: Arrow, to_create: bool = True) -> bool:
         """
 
             判断是否需要分表，若已存在表是否覆盖
         @param to_create: 是否覆盖
         @return:
         """
-        tab_name: str = self._get_split_tab_name()
+        tab_name: str = self._get_split_tab_name(dt)
         is_need = False
         if self._check_exist_tab(tab_name) is False or (self._check_exist_tab(tab_name) and to_create):
             is_need = self._create_station_realdata_tab(tab_name)
         return is_need
 
-    def _get_split_tab_name(self) -> str:
+    def _get_split_tab_name(self, dt: Arrow) -> str:
         """
             获取分表名称
             按照结束时间生成表名
             eg: gmt_start 2023-02-26 xxx_202302
+        @param dt:当前时间
         @return: 分表名称 eg: station_realdata_specific_202302
         """
         tab_base_name: str = DB_TABLE_SPLIT_OPTIONS.get('station').get('tab_split_name')
-        tab_dt_name: str = self.gmt_end.format('YYYYMM')
+        tab_dt_name: str = dt.format('YYYYMM')
         tab_name: str = f'{tab_base_name}_{tab_dt_name}'
         return tab_name
 
