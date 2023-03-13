@@ -20,6 +20,25 @@ class StationStatusSchema(BaseModel):
         orm_mode = True
 
 
+class StationStatusAndGeoInfoSchema(BaseModel):
+    """
+        海洋站状态 Schema
+    """
+    station_code: str
+    status: int
+    gmt_realtime: datetime
+    gmt_modify_time: datetime
+    is_del: bool
+    lat: float
+    lon: float
+    rid: int
+
+    # is_del: bool
+
+    class Config:
+        orm_mode = True
+
+
 class StationSurgeSchema(BaseModel):
     """
         潮位实况 Schema

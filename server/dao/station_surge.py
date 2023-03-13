@@ -2,7 +2,7 @@ from typing import List, Optional
 from datetime import datetime
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session
-from models.models import StationRealDataSpecific, StationRealDataIndex
+from models.models import StationRealDataSpecific, StationRealDataIndex, RegionInfo
 from schema.station_surge import SurgeRealDataSchema
 
 from dao.base import BaseDao

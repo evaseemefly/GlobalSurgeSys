@@ -3,14 +3,14 @@ from typing import List
 
 from dao.station_status import StationStatusDao
 from models.models import StationStatus
-from schema.station_status import StationStatusSchema
+from schema.station_status import StationStatusSchema, StationStatusAndGeoInfoSchema
 
 app = APIRouter()
 
 
 # @app.get('/station/status/all', response_model = List[StationStatusSchema])
 
-@app.get('/all', response_model=List[StationStatusSchema])
+@app.get('/all', response_model=List[StationStatusSchema], summary="获取当前全部站点的状态")
 def get_all_station_status():
     station_res = StationStatusDao().get_all_station_status()
     # for temp in station_res:
@@ -41,9 +41,15 @@ def get_all_station_status():
     return list_stations
 
 
-@app.get('/one/{station_code}', response_model=StationStatusSchema)
+@app.get('/one/{station_code}', response_model=StationStatusSchema, summary="获取单个站点的状态")
 def get_one_station_status(station_code: str):
     station_one: StationStatus = StationStatusDao().get_one_station_status(station_code)
     return station_one
 
 
+@app.get('/all/latlng', response_model=List[StationStatusAndGeoInfoSchema], summary="包含行政区划的全部站点状态")
+def get_all_station_join_geoinfo():
+    query = StationStatusDao().get_all_station_status_join_latlng()
+    # {'status': 1001, 'gmt_realtime': datetime.datetime(2023, 3, 9, 22, 29), 'gmt_modify_time': datetime.datetime(2023, 3, 9, 22, 46, 23, 406169), 'station_code': 'waka', 'rid': 21, 'lat': 45.41, 'lon': 141.69}
+    # 缺少了 is_del
+    return query
