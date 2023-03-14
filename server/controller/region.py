@@ -26,6 +26,17 @@ def get_all_region(pid: int = -1, only_country: bool = True):
     return region_list
 
 
+@app.get('/father/region', response_model=RegionSchema, summary="根据cid获取所属的父级 region")
+def get_father_region(cid: int = -1):
+    """
+        根据 cid 获取所属的父 region
+    :param cid:
+    :return:
+    """
+    father = father_region = RegionDao().get_father_region(cid)
+    return father
+
+
 @app.get('/list/nest', response_model=List[RegionFather], summary="获取全部的行政区划(按照嵌套的方式)", )
 def get_all_region_nest(pid: int = -1):
     """

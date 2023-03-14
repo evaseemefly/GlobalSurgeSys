@@ -55,4 +55,33 @@ class StationSurgeDao(BaseDao):
                 StationRealDataSpecific.station_code == station_code)
             return surge_filter_query.all()
         return []
+
     # def get_dist_month_tabs(self,start:datetime,end:datetime)->List[str]:
+
+    def get_dist_station_recently_surge_list(self) -> List[SurgeRealDataSchema]:
+        """
+            获取所有不同站点的最近一次的实况
+        :return:
+        """
+        session: Session = self.db.session
+        # step1: 获取距离当前最近的一张表名
+        table: Optional[StationRealDataIndex] = session.query(StationRealDataIndex).order_by(
+            StationRealDataIndex.gmt_create_time.desc()).first()
+        # step2: 动态修改 realdata tb
+        StationRealDataSpecific.__table__.name = table.table_name
+        # step3: 从最近的一张表中查询
+        filter_condition = select(StationRealDataSpecific.station_code, StationRealDataSpecific.gmt_realtime,
+                                  StationRealDataSpecific.surge, StationRealDataSpecific.tid).group_by(
+            StationRealDataSpecific.station_code).order_by(StationRealDataSpecific.gmt_realtime.desc())
+
+        query = session.execute(filter_condition).fetchall()
+        list_schema = []
+        for temp_query in query:
+            temp_schema: dict[str, Any] = {
+                'station_code': temp_query[0],
+                'gmt_realtime': temp_query[1],
+                'surge': temp_query[2],
+                'tid': temp_query[3]
+            }
+            list_schema.append(temp_schema)
+        return list_schema

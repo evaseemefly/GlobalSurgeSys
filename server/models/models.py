@@ -125,7 +125,7 @@ class RegionInfo(IIdModel, IDel, IModel):
     """
         行政区划表
     """
-    location: Mapped[str] = mapped_column()
+    # location: Mapped[str] = mapped_column()
     val_en: Mapped[str] = mapped_column()
     val_ch: Mapped[str] = mapped_column()
     pid: Mapped[int] = mapped_column(nullable=False, default=DEFAULT_COUNTRY_INDEX)

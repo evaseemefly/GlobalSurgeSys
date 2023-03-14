@@ -10,6 +10,6 @@ class SurgeRealDataSchema(BaseModel):
         tid: 对应所属行政区划
     """
     station_code: str
-    surge: str
+    gmt_realtime: datetime
+    surge: float
     tid: int
-

@@ -1,4 +1,4 @@
-from typing import List, Type, Any
+from typing import List, Type, Any, Optional
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
@@ -59,3 +59,16 @@ class RegionDao(BaseDao):
                 temp_father_model.children.append(temp_child_model)
             father_region_models.append(temp_father_model)
         return father_region_models
+
+    def get_father_region(self, child_id: int = -1) -> Optional[RegionSchema]:
+        """
+            根据 child_id 找到起所属的父级region
+        :param child_id:
+        :return:
+        """
+        session: Session = self.db.session
+        father: Optional[Type[RegionInfo]] = None
+        child: Optional[Type[RegionInfo]] = session.query(RegionInfo).filter(RegionInfo.id == child_id).first()
+        if child is not None:
+            father = session.query(RegionInfo).filter(RegionInfo.id == child.pid).first()
+        return father
