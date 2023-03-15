@@ -58,22 +58,72 @@ class StationSurgeDao(BaseDao):
 
     # def get_dist_month_tabs(self,start:datetime,end:datetime)->List[str]:
 
-    def get_dist_station_recently_surge_list(self) -> List[SurgeRealDataSchema]:
+    def get_table_name_by_recently(self) -> str:
+        """
+            获取距离当前时间最近的表名
+        :return:
+        """
+        session: Session = self.db.session
+        table: Optional[StationRealDataIndex] = session.query(StationRealDataIndex).order_by(
+            StationRealDataIndex.gmt_create_time.desc()).first()
+        return table.table_name
+
+    def get_table_name_by_dt(self, dt: datetime) -> Optional[str]:
+        """
+            获取当前时间对应的表名,若不存在则返回 None
+        :param dt:
+        :return:
+        """
+        session: Session = self.db.session
+        table: Optional[StationRealDataIndex] = session.query(StationRealDataIndex).filter(
+            StationRealDataIndex.gmt_start <= dt, StationRealDataIndex.gmt_end >= dt).first()
+        if table is not None:
+            return table.table_name
+        return None
+
+    def get_dist_station_surge_list_by_recently(self) -> List[SurgeRealDataSchema]:
         """
             获取所有不同站点的最近一次的实况
         :return:
         """
         session: Session = self.db.session
         # step1: 获取距离当前最近的一张表名
-        table: Optional[StationRealDataIndex] = session.query(StationRealDataIndex).order_by(
-            StationRealDataIndex.gmt_create_time.desc()).first()
+        table_name: str = self.get_table_name_by_recently()
         # step2: 动态修改 realdata tb
-        StationRealDataSpecific.__table__.name = table.table_name
+        StationRealDataSpecific.__table__.name = table_name
         # step3: 从最近的一张表中查询
         filter_condition = select(StationRealDataSpecific.station_code, StationRealDataSpecific.gmt_realtime,
                                   StationRealDataSpecific.surge, StationRealDataSpecific.tid).group_by(
             StationRealDataSpecific.station_code).order_by(StationRealDataSpecific.gmt_realtime.desc())
 
+        query = session.execute(filter_condition).fetchall()
+        list_schema = []
+        for temp_query in query:
+            temp_schema: dict[str, Any] = {
+                'station_code': temp_query[0],
+                'gmt_realtime': temp_query[1],
+                'surge': temp_query[2],
+                'tid': temp_query[3]
+            }
+            list_schema.append(temp_schema)
+        return list_schema
+
+    def get_dist_station_surge_list_by_dt(self, dt: datetime) -> List[SurgeRealDataSchema]:
+        """
+            根据传入的 dt 获取所有站点该时刻的潮值
+        :param dt:
+        :return:
+        """
+        session: Session = self.db.session
+        # step1: 获取最近的表名
+        table_name: str = self.get_table_name_by_dt(dt)
+        # step2: 动态调整表名
+        StationRealDataSpecific.__table__.name = table_name
+        # step3: 获取该时刻的全部站的潮位
+        filter_condition = select(StationRealDataSpecific.station_code, StationRealDataSpecific.gmt_realtime,
+                                  StationRealDataSpecific.surge, StationRealDataSpecific.tid).where(
+            StationRealDataSpecific.gmt_realtime == dt).group_by(StationRealDataSpecific.station_code)
+        # TODO:[-] 23-03-15 以下代码与 get_dist_station_surge_list_by_recently 方法中相同
         query = session.execute(filter_condition).fetchall()
         list_schema = []
         for temp_query in query:

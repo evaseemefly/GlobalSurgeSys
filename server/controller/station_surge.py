@@ -17,7 +17,7 @@ def get_one_station_surges(station_code: str, start_dt: datetime, end_dt: dateti
     return surge_list
 
 
-@app.get('surgel/list/recent', response_model=List[SurgeRealDataSchema],
+@app.get('/list/recent', response_model=List[SurgeRealDataSchema],
          response_model_include=['station_code', 'gmt_realtime', 'surge', 'tid'], summary="获取距离当前时间最近的所有潮位站的值")
 def get_recently_station_surge(now: datetime = datetime.utcnow()):
     """
@@ -25,6 +25,18 @@ def get_recently_station_surge(now: datetime = datetime.utcnow()):
     :param now:
     :return:
     """
-    recent_station_list = StationSurgeDao().get_dist_station_recently_surge_list()
+    recent_station_list = StationSurgeDao().get_dist_station_surge_list_by_recently()
     return recent_station_list
     # return []
+
+
+@app.get('/list/target_dt', response_model=List[SurgeRealDataSchema],
+         response_model_include=['station_code', 'gmt_realtime', 'surge', 'tid'], summary="获取对应时间所有潮位站的值")
+def get_stations_surge_by_dt(now: datetime = datetime.utcnow()):
+    """
+        获取对应时刻的全部站点的潮位值
+    :param now:
+    :return:
+    """
+    target_dt_station_list = StationSurgeDao().get_dist_station_surge_list_by_dt(now)
+    return target_dt_station_list
