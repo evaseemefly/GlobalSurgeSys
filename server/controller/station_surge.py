@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Request
 from dao.station_surge import StationSurgeDao
 from models.models import StationRealDataSpecific
 from schema.station_status import StationSurgeSchema
-from schema.station_surge import SurgeRealDataSchema
+from schema.station_surge import SurgeRealDataSchema, SurgeRealDataJoinStationSchema
 
 app = APIRouter()
 
@@ -17,15 +17,16 @@ def get_one_station_surges(station_code: str, start_dt: datetime, end_dt: dateti
     return surge_list
 
 
-@app.get('/list/recent', response_model=List[SurgeRealDataSchema],
-         response_model_include=['station_code', 'gmt_realtime', 'surge', 'tid'], summary="获取距离当前时间最近的所有潮位站的值")
+@app.get('/list/recent', response_model=List[SurgeRealDataJoinStationSchema],
+         response_model_include=['station_code', 'gmt_realtime', 'surge', 'tid', 'lon', 'lat'],
+         summary="获取距离当前时间最近的所有潮位站的值")
 def get_recently_station_surge(now: datetime = datetime.utcnow()):
     """
         获取距离当前时间最近的所有潮位站的值
     :param now:
     :return:
     """
-    recent_station_list = StationSurgeDao().get_dist_station_surge_list_by_recently()
+    recent_station_list = StationSurgeDao().get_dist_station_surge_list_by_recently(is_join_station=True)
     return recent_station_list
     # return []
 

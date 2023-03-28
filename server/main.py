@@ -3,6 +3,8 @@
 # 按 Ctrl+F5 执行或将其替换为您的代码。
 # 按 双击 Shift 在所有地方搜索类、文件、工具窗口、操作和设置。
 from fastapi import FastAPI
+# cors
+from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 import typer
 
@@ -11,6 +13,12 @@ from application import urls
 
 shell_app = typer.Typer()
 
+origins = [
+    "http://localhost",
+    "http://localhost:8080",
+    "http://localhost:8081",
+]
+
 
 def init_app():
     app = FastAPI(
@@ -18,6 +26,13 @@ def init_app():
         description="全球潮位共享业务化系统.本系统通过:fastapi+sqlalchemy+typer实现",
         version="1.0.0"
     )
+    # - 23-03-27 加入 cores
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"], )
 
     for url in urls.urlpatterns:
         # prefix:  '/station/status'

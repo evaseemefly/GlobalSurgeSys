@@ -2,10 +2,15 @@ from typing import List, Optional
 from datetime import datetime
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session
-from models.models import StationRealDataSpecific, StationRealDataIndex, RegionInfo
+
+from common.default import DEFAULT_LATLNG
+from models.models import StationRealDataSpecific, StationRealDataIndex, RegionInfo, StationInfo
+from schema.region import RegionSchema
 from schema.station_surge import SurgeRealDataSchema
 
 from dao.base import BaseDao
+from dao.region import RegionDao
+from dao.station import StationDao
 from common.utils import get_split_tablename
 
 
@@ -81,9 +86,10 @@ class StationSurgeDao(BaseDao):
             return table.table_name
         return None
 
-    def get_dist_station_surge_list_by_recently(self) -> List[SurgeRealDataSchema]:
+    def get_dist_station_surge_list_by_recently(self, is_join_station: bool = False) -> List[dict]:
         """
             获取所有不同站点的最近一次的实况
+        :param is_join_station:  是否拼接 tb:station
         :return:
         """
         session: Session = self.db.session
@@ -97,15 +103,30 @@ class StationSurgeDao(BaseDao):
             StationRealDataSpecific.station_code).order_by(StationRealDataSpecific.gmt_realtime.desc())
 
         query = session.execute(filter_condition).fetchall()
-        list_schema = []
-        for temp_query in query:
-            temp_schema: dict[str, Any] = {
-                'station_code': temp_query[0],
-                'gmt_realtime': temp_query[1],
-                'surge': temp_query[2],
-                'tid': temp_query[3]
-            }
-            list_schema.append(temp_schema)
+        list_schema: List[dict] = []
+        # 若要与region拼接
+        if is_join_station:
+            list_station: List[StationInfo] = StationDao().get_all_station()
+            for temp_query in query:
+                temp_station: Optional[StationInfo] = StationDao.get_station_by_code(list_station, temp_query[0])
+                temp_schema: dict[str, Any] = {
+                    'station_code': temp_query[0],
+                    'gmt_realtime': temp_query[1],
+                    'surge': temp_query[2],
+                    'tid': temp_query[3],
+                    'lat': temp_station.lat if temp_station is not None else DEFAULT_LATLNG,
+                    'lon': temp_station.lon if temp_station is not None else DEFAULT_LATLNG,
+                }
+                list_schema.append(temp_schema)
+        else:
+            for temp_query in query:
+                temp_schema: dict[str, Any] = {
+                    'station_code': temp_query[0],
+                    'gmt_realtime': temp_query[1],
+                    'surge': temp_query[2],
+                    'tid': temp_query[3],
+                }
+                list_schema.append(temp_schema)
         return list_schema
 
     def get_dist_station_surge_list_by_dt(self, dt: datetime) -> List[SurgeRealDataSchema]:

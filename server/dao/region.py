@@ -10,7 +10,7 @@ from models.models import RegionInfo
 
 class RegionDao(BaseDao):
 
-    def get_all_region(self, pid=-1):
+    def get_all_region(self, pid=-1) -> List[RegionInfo]:
         """
             获取指定pid的全部子区划及孙子行政区划
         @param pid:
@@ -72,3 +72,16 @@ class RegionDao(BaseDao):
         if child is not None:
             father = session.query(RegionInfo).filter(RegionInfo.id == child.pid).first()
         return father
+
+    @classmethod
+    def get_region_by_tid(cls, list_region: List[RegionInfo], tid: int = -1) -> Optional[RegionSchema]:
+        """
+            根据 tid 找到 region
+        :param list_region:
+        :param tid: task_id
+        :return:
+        """
+        for temp_region in list_region:
+            if temp_region.id == tid:
+                return temp_region
+        return None
