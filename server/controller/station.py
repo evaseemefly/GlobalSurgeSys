@@ -13,7 +13,7 @@ app = APIRouter()
 @app.get('/list', response_model=List[StationSchema],
          response_model_include=['station_code', 'station_name', 'lat', 'lon', 'is_in_common_user', 'rid']
 
-    , summary="获取全部潮位站的基础数据", )
+    , summary="获取全部潮位站的基础数据(含经纬度信息)", )
 def get_all_station():
     """
         获取所属当前pid的全部region集合

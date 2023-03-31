@@ -2,6 +2,7 @@ from typing import List, Optional
 from datetime import datetime
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session
+from sqlalchemy.sql import func
 
 from common.default import DEFAULT_LATLNG
 from models.models import StationRealDataSpecific, StationRealDataIndex, RegionInfo, StationInfo
@@ -27,10 +28,12 @@ class StationSurgeDao(BaseDao):
         """
         # TODO:[*] 23-03-12 此处存在一个问题:当 起止时间不在一月(已在spider模块修改)
         # 先判断是否需要联合表进行查询
-        list_surge: List[StationRealDataSpecific] = self.get_target_dt_surge(station_code, gmt_start, gmt_end)
+        list_surge: List[StationRealDataSpecific] = self.get_target_dt_surge(station_code, gmt_start, gmt_end, True,
+                                                                             False, True)
         if self._check_need_split_tab(gmt_start, gmt_end):
             list_surge.extend(
-                self.get_station_surge_list(station_code, gmt_start, gmt_end, is_use_starttime_split=False))
+                self.get_station_surge_list(station_code, gmt_start, gmt_end, is_use_starttime_split=False,
+                                            is_desc=False, is_hourly=True))
         return list_surge
 
     def _check_need_split_tab(self, start: datetime, end: datetime):
@@ -45,7 +48,18 @@ class StationSurgeDao(BaseDao):
         return True
 
     def get_target_dt_surge(self, station_code: str, start: datetime, end: datetime,
-                            is_use_starttime_split: bool = True) -> List[StationRealDataSpecific]:
+                            is_use_starttime_split: bool = True, is_desc: bool = True, is_hourly: bool = True) -> List[
+        StationRealDataSpecific]:
+        """
+            获取指定 起止时间范围内的 对应 code 的潮位集合(整点)
+        :param station_code:
+        :param start:
+        :param end:
+        :param is_use_starttime_split:
+        :param is_desc:
+        :param is_hourly: 是否只取整点数据
+        :return:
+        """
         # 对应分表的名称
         split_dt: datetime = start if is_use_starttime_split else end
         tb_name: str = get_split_tablename(split_dt)
@@ -58,6 +72,13 @@ class StationSurgeDao(BaseDao):
             surge_filter_query = session.query(StationRealDataSpecific).filter(
                 StationRealDataSpecific.gmt_realtime >= start, StationRealDataSpecific.gmt_realtime <= end,
                 StationRealDataSpecific.station_code == station_code)
+            # TODO:[-] 23-03-31 取整点的数据
+            if is_hourly:
+                surge_filter_query = surge_filter_query.filter(func.MINUTE(StationRealDataSpecific.gmt_realtime) == 0)
+            if is_desc:
+                surge_filter_query = surge_filter_query.order_by(StationRealDataSpecific.gmt_realtime.desc())
+            elif is_desc is False:
+                surge_filter_query = surge_filter_query.order_by(StationRealDataSpecific.gmt_realtime.asc())
             return surge_filter_query.all()
         return []
 
