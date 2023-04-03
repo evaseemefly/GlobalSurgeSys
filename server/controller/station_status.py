@@ -41,7 +41,7 @@ def get_all_station_status():
     return list_stations
 
 
-@app.get('/one/{station_code}', response_model=StationStatusSchema, summary="获取单个站点的状态")
+@app.get('/one/', response_model=StationStatusSchema, summary="获取单个站点的状态")
 def get_one_station_status(station_code: str):
     station_one: StationStatus = StationStatusDao().get_one_station_status(station_code)
     return station_one

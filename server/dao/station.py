@@ -28,3 +28,12 @@ class StationDao(BaseDao):
         """
         session: Session = self.db.session
         return session.query(StationInfo).filter(StationInfo.is_del == 0).all()
+
+    def get_one_station(self, code: str) -> Optional[StationInfo]:
+        """
+            获取指定code 的站点 info
+        :param code:
+        :return:
+        """
+        session: Session = self.db.session
+        return session.query(StationInfo).filter(StationInfo.station_code == code).first()

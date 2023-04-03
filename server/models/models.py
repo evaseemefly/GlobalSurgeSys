@@ -85,7 +85,10 @@ class StationRealDataSpecific(IIdModel, IDel, IModel, IRealDataDt):
     # gmt_dt: Mapped[datetime] = mapped_column(default=datetime.utcnow)
     # gmt_realtime: Mapped[datetime] = mapped_column(default=datetime.utcnow)
     # gmt_realtime: Mapped[int] = mapped_column(default=0)
-    surge: Mapped[float] = mapped_column(default=DEFAULT_SURGE)
+    # 此处设施 nullable 无效
+    # surge: Mapped[Optional[float]] = mapped_column(nullable=True)
+    surge: Mapped[Optional[float]] = mapped_column(default=DEFAULT_SURGE, nullable=True)
+    # surge: Mapped[Optional[float]]
     # 所属的 SpiderTaskInfo id
     tid: Mapped[int] = mapped_column(default=0)
     __tablename__ = 'station_realdata_specific'

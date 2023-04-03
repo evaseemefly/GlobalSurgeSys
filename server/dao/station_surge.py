@@ -1,10 +1,11 @@
 from typing import List, Optional
 from datetime import datetime
+import arrow
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import func
 
-from common.default import DEFAULT_LATLNG
+from common.default import DEFAULT_LATLNG, DEFAULT_SURGE
 from models.models import StationRealDataSpecific, StationRealDataIndex, RegionInfo, StationInfo
 from schema.region import RegionSchema
 from schema.station_surge import SurgeRealDataSchema
@@ -34,7 +35,36 @@ class StationSurgeDao(BaseDao):
             list_surge.extend(
                 self.get_station_surge_list(station_code, gmt_start, gmt_end, is_use_starttime_split=False,
                                             is_desc=False, is_hourly=True))
-        return list_surge
+        # TODO:[*] 23-04-03 此处加入拼接
+        # step1: 根据起止时间生成时间集合
+        # 时间间隔单位(单位:s)——以1h为时间间隔步长
+        dt_step_unit: int = 60 * 60
+        dt_diff = int((arrow.get(gmt_end).timestamp - arrow.get(gmt_start).timestamp) / dt_step_unit)
+        dt_index_list = [i for i in range(dt_diff)]
+        # 根据传入的起止时间按照指定的时间间隔(dt_step_unit) 生成时间集合
+        # 起始时间(arrow)
+        arrow_start: arrow.Arrow = arrow.get(gmt_start)
+        # 起始时间(整点时刻:arrow)
+        arrow_start_hourly: arrow.Arrow = arrow.Arrow(arrow_start.year, arrow_start.month, arrow_start.day,
+                                                      arrow_start.hour, 0)
+        # 时间列表(整点)
+        dt_utc_list: List[arrow.Arrow] = [arrow.get(arrow_start_hourly).shift(hours=i) for i in dt_index_list]
+        result: List[StationRealDataSpecific] = []
+        # ERROR: 注意 dt_list 是 utc 时间,而 list_surge 中的时间为 local
+        for temp_dt_ar_utc in dt_utc_list:
+            temp_dt_utc: datetime.datetime = temp_dt_ar_utc.datetime
+            filter_obj = list(filter(lambda x: x.ts == temp_dt_ar_utc.timestamp, list_surge))
+            if len(filter_obj) > 0:
+                filter_obj[0].gmt_realtime = temp_dt_utc
+                result.append(filter_obj[0])
+            else:
+                temp_obj = StationRealDataSpecific(station_code=station_code, tid=-1, surge=DEFAULT_SURGE,
+                                                   gmt_realtime=temp_dt_utc,
+                                                   ts=temp_dt_ar_utc.timestamp,
+                                                   )
+                result.append(temp_obj)
+
+        return result
 
     def _check_need_split_tab(self, start: datetime, end: datetime):
         """
@@ -48,8 +78,9 @@ class StationSurgeDao(BaseDao):
         return True
 
     def get_target_dt_surge(self, station_code: str, start: datetime, end: datetime,
-                            is_use_starttime_split: bool = True, is_desc: bool = True, is_hourly: bool = True) -> List[
-        StationRealDataSpecific]:
+                            is_use_starttime_split: bool = True, is_desc: bool = True, is_hourly: bool = True) -> \
+            List[
+                StationRealDataSpecific]:
         """
             获取指定 起止时间范围内的 对应 code 的潮位集合(整点)
         :param station_code:
@@ -74,7 +105,8 @@ class StationSurgeDao(BaseDao):
                 StationRealDataSpecific.station_code == station_code)
             # TODO:[-] 23-03-31 取整点的数据
             if is_hourly:
-                surge_filter_query = surge_filter_query.filter(func.MINUTE(StationRealDataSpecific.gmt_realtime) == 0)
+                surge_filter_query = surge_filter_query.filter(
+                    func.MINUTE(StationRealDataSpecific.gmt_realtime) == 0)
             if is_desc:
                 surge_filter_query = surge_filter_query.order_by(StationRealDataSpecific.gmt_realtime.desc())
             elif is_desc is False:

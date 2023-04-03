@@ -73,6 +73,15 @@ class RegionDao(BaseDao):
             father = session.query(RegionInfo).filter(RegionInfo.id == child.pid).first()
         return father
 
+    def get_region_by_id(self, rid: int) -> Optional[RegionInfo]:
+        """
+            根据 id 获取对应的 region
+        :param rid:
+        :return:
+        """
+        session: Session = self.db.session
+        return session.query(RegionInfo).filter(RegionInfo.id == rid).first()
+
     @classmethod
     def get_region_by_tid(cls, list_region: List[RegionInfo], tid: int = -1) -> Optional[RegionSchema]:
         """

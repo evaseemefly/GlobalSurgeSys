@@ -15,3 +15,18 @@ class StationSchema(BaseModel):
 
     class Config:
         orm_mode = True
+
+
+class MixInStationRegionSchema(BaseModel):
+    station_code: str
+    station_name: str
+    lat: float
+    lon: float
+    rid: int
+    val_en: str
+    val_ch: str
+    cid: int
+    country_en: str
+
+    class Config:
+        orm_mode = True
