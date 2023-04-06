@@ -124,6 +124,16 @@ class SpiderTaskInfo(IIdModel, IDel, IModel):
     __tablename__ = 'spider_task_info'
 
 
+class StationAstronomicTideRealDataModel(IIdModel, IDel, IModel):
+    """
+        天文潮
+    """
+    __tablename__ = 'station_astronomic_tide'
+    station_code = Column(VARCHAR(200), nullable=False)
+    forecast_dt = Column(DATETIME(fsp=2))
+    surge = Column(Float, nullable=False)
+
+
 def to_migrate():
     """
         根据ORM生成数据库结构
