@@ -15,6 +15,15 @@ class DBFactory:
             config = self.default_config
         self.session = self._create_scoped_session(config)
 
+    def __del__(self):
+        """
+            + 23-04-04 解决
+            sqlalchemy.exc.OperationalError: (MySQLdb._exceptions.OperationalError)
+             (1040, 'Too many connections')
+        :return:
+        """
+        self.session.close()
+
     @staticmethod
     def _create_scoped_session(config: DBConfig):
         engine = create_engine(

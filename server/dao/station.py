@@ -26,6 +26,9 @@ class StationDao(BaseDao):
             获取所有站点信息
         :return:
         """
+        # TODO:[*] 23-04-04 Too many connections
+        #  sqlalchemy.exc.OperationalError: (MySQLdb._exceptions.OperationalError)
+        #  (1040, 'Too many connections')
         session: Session = self.db.session
         return session.query(StationInfo).filter(StationInfo.is_del == 0).all()
 

@@ -32,6 +32,7 @@ class StationStatusAndGeoInfoSchema(BaseModel):
     lat: float
     lon: float
     rid: int
+    surge: float
 
     # is_del: bool
 

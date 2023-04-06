@@ -1,5 +1,6 @@
 from typing import List, Optional, Any
 
+from common.default import DEFAULT_SURGE
 from models.models import StationStatus, RegionInfo, StationInfo
 from schema.station_status import StationStatusAndGeoInfoSchema
 from sqlalchemy import select, update
@@ -65,6 +66,7 @@ class StationStatusDao(BaseDao):
                                            'gmt_realtime': temp_query[1],
                                            'gmt_modify_time': temp_query[2],
                                            'station_code': temp_query[3],
+                                           'surge': DEFAULT_SURGE,
                                            'rid': temp_query[4],
                                            'lat': temp_query[5],
                                            'lon': temp_query[6],
