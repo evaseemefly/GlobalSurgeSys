@@ -108,6 +108,17 @@ class StationRealDataSpecific(IIdModel, IDel, IModel, IRealDataDt):
         self.__table__.name = tab_name
 
 
+class StationAstronomicTideRealDataModel(IIdModel, IDel, IModel, IRealDataDt):
+    """
+        天文潮
+    """
+    __tablename__ = 'station_astronomic_tide'
+    station_code = Column(VARCHAR(200), nullable=False)
+    # forecast_dt = Column(DATETIME(fsp=2))
+    surge = Column(Float, nullable=False)
+    # ts = Column(Integer, nullable=False, default=0)
+
+
 class StationInfo(IIdModel, IDel, IModel):
     station_name: Mapped[str] = mapped_column(default=DEFAULT_NAME)
     station_code: Mapped[str] = mapped_column(default=DEFAULT_CODE)

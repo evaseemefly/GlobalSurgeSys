@@ -8,4 +8,3 @@ class BaseDao:
 
     def __init__(self):
         self.db = DBFactory()
-

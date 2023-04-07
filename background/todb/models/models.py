@@ -130,8 +130,9 @@ class StationAstronomicTideRealDataModel(IIdModel, IDel, IModel):
     """
     __tablename__ = 'station_astronomic_tide'
     station_code = Column(VARCHAR(200), nullable=False)
-    forecast_dt = Column(DATETIME(fsp=2))
+    gmt_realtime = Column(DATETIME(fsp=2))
     surge = Column(Float, nullable=False)
+    ts = Column(Integer, nullable=False, default=0)
 
 
 def to_migrate():
