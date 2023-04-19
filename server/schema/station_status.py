@@ -52,3 +52,19 @@ class StationSurgeSchema(BaseModel):
 
     class Config:
         orm_mode = True
+
+
+class StationStatusMixRegionchema(BaseModel):
+    """
+        潮位实况 Schema
+    """
+    val_ch: str
+    val_en: str
+    station_code: str
+    gmt_realtime: datetime
+    station_code: str
+    id: int
+    pid: int
+
+    class Config:
+        orm_mode = True

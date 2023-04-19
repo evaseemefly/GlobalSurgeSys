@@ -47,3 +47,15 @@ def get_all_region_nest(pid: int = -1):
     region_nest_list = []
     list_region = RegionDao().get_region_nest_list(pid)
     return list_region
+
+
+@app.get('/all/country/count', summary="获取全部的行政区划(按照嵌套的方式)", )
+def get_country_count():
+    """
+        获取全部国家及地区的总数
+    :return:
+    """
+    count: int = len(RegionDao().get_all_country())
+    return {'count': count}
+
+

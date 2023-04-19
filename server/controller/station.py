@@ -29,6 +29,10 @@ def get_all_station():
     return station_list
 
 
+# def get_all_country_station_num():
+#     pass
+
+
 @app.get('/contain/region/', summary='根据传入的code 获取对应的station,region,country 信息',
          response_model=MixInStationRegionSchema)
 def get_station_region(code: str):

@@ -40,7 +40,7 @@ class StationStatusDao(BaseDao):
             return filter_query
         return None
 
-    def get_all_station_status_join_latlng(self):
+    def get_all_station_status_join_latlng(self, pid=None):
         session: Session = self.db.session
         # sqlalchemy.exc.ArgumentError: Join target, typically a FROM expression,
         # or ORM relationship attribute expected
@@ -59,6 +59,10 @@ class StationStatusDao(BaseDao):
                                   StationInfo.lon, StationStatus.is_del).join(
             StationInfo, StationStatus.station_code == StationInfo.station_code).where(
             StationStatus.is_del == False).order_by(StationInfo.id)
+        if pid is not None:
+            filter_condition = filter_condition.join(RegionInfo, RegionInfo.id == StationInfo.rid).where(
+                RegionInfo.pid == pid)
+            pass
         query = session.execute(filter_condition).fetchall()
         list_schema = []
         for temp_query in query:
@@ -73,3 +77,17 @@ class StationStatusDao(BaseDao):
                                            'is_del': temp_query[7]}
             list_schema.append(temp_schema)
         return list_schema
+
+    def get_all_station_updatedate_by_pid(self, pid: int):
+        """
+            根据 pid 获取指定区域的所有站点的最后更新时间
+        :param pid:
+        :return:
+        """
+        session: Session = self.db.session
+        filter_condition = select(RegionInfo.val_ch, RegionInfo.val_en, RegionInfo.id, RegionInfo.pid,
+                                  StationInfo.station_code,
+                                  StationStatus.gmt_realtime).where(RegionInfo.id == StationInfo.rid).where(
+            StationInfo.station_code == StationStatus.station_code).where(RegionInfo.pid == pid)
+        query = session.execute(filter_condition).fetchall()
+        return query

@@ -35,3 +35,17 @@ class RegionFather(BaseModel):
 
     class Config:
         orm_mode = True
+
+
+class RegionMixNumSchema(BaseModel):
+    """
+        + 23-04-18 地区混合了该地区全部station num 的 schema
+    """
+    id: int
+    val_en: str
+    val_ch: str
+    pid: int
+    count: int  # 站点总数
+
+    class Config:
+        orm_mode = True

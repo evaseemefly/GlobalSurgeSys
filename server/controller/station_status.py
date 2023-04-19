@@ -3,7 +3,7 @@ from typing import List
 
 from dao.station_status import StationStatusDao
 from models.models import StationStatus
-from schema.station_status import StationStatusSchema, StationStatusAndGeoInfoSchema
+from schema.station_status import StationStatusSchema, StationStatusAndGeoInfoSchema, StationStatusMixRegionchema
 
 app = APIRouter()
 
@@ -48,7 +48,7 @@ def get_one_station_status(station_code: str):
 
 
 @app.get('/all/latlng', response_model=List[StationStatusAndGeoInfoSchema], summary="包含行政区划的全部站点状态")
-def get_all_station_join_geoinfo():
+def get_all_station_join_geoinfo(pid: int = None):
     """
          获取所有站点的状态及geo信息(包含surge默认值)
     :return:  {
@@ -63,7 +63,14 @@ def get_all_station_join_geoinfo():
                 "surge": -9999.99
               },
     """
-    query = StationStatusDao().get_all_station_status_join_latlng()
+    query = StationStatusDao().get_all_station_status_join_latlng(pid)
     # {'status': 1001, 'gmt_realtime': datetime.datetime(2023, 3, 9, 22, 29), 'gmt_modify_time': datetime.datetime(2023, 3, 9, 22, 46, 23, 406169), 'station_code': 'waka', 'rid': 21, 'lat': 45.41, 'lon': 141.69}
     # 缺少了 is_del
+    return query
+
+
+@app.get('/all/station_status/pid/', response_model=List[StationStatusMixRegionchema],
+         summary="根据 pid 获取指定区域的所有站点的最后更新时间")
+def get_all_station_updatedt_by_pid(pid: int):
+    query = StationStatusDao().get_all_station_updatedate_by_pid(pid)
     return query
