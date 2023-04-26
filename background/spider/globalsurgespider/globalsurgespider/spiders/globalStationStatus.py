@@ -303,7 +303,7 @@ class GlobalstationstatusSpider(scrapy.Spider):
                                 # ts:1548260567 10位
                                 temp_dict = {'dt': temp_dt,
                                              'surge': float(np.nan if temp_rad_str.strip() == '' else temp_rad_str),
-                                             'ts': arrow.get(temp_dt_str).timestamp}
+                                             'ts': arrow.get(temp_dt_str).timestamp()}
                                 list_station_rad.append(temp_dict)
                                 # for td in td_list[index:]:
                                 #     print(td)

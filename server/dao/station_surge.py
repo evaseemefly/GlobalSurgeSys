@@ -39,7 +39,9 @@ class StationSurgeDao(BaseDao):
         # step1: 根据起止时间生成时间集合
         # 时间间隔单位(单位:s)——以1h为时间间隔步长
         dt_step_unit: int = 60 * 60
-        dt_diff = int((arrow.get(gmt_end).timestamp - arrow.get(gmt_start).timestamp) / dt_step_unit)
+        # TODO:[-] 23-04-25 TypeError: unsupported operand type(s) for -: 'method' and 'method'
+        # TODO:[*] 23-04-25 注意此处存在问题 linux 与 win 获取时间戳时，linux为func
+        dt_diff = int((arrow.get(gmt_end).timestamp() - arrow.get(gmt_start).timestamp()) / dt_step_unit)
         dt_index_list = [i for i in range(dt_diff)]
         # 根据传入的起止时间按照指定的时间间隔(dt_step_unit) 生成时间集合
         # 起始时间(arrow)
@@ -53,14 +55,16 @@ class StationSurgeDao(BaseDao):
         # ERROR: 注意 dt_list 是 utc 时间,而 list_surge 中的时间为 local
         for temp_dt_ar_utc in dt_utc_list:
             temp_dt_utc: datetime.datetime = temp_dt_ar_utc.datetime
-            filter_obj = list(filter(lambda x: x.ts == temp_dt_ar_utc.timestamp, list_surge))
+            # TODO:[*] 23-04-25 注意此处存在问题 linux 与 win 获取时间戳时，linux为func
+            filter_obj = list(filter(lambda x: x.ts == temp_dt_ar_utc.timestamp(), list_surge))
             if len(filter_obj) > 0:
                 filter_obj[0].gmt_realtime = temp_dt_utc
                 result.append(filter_obj[0])
             else:
+                # TODO:[*] 23-04-25 注意此处存在问题 linux 与 win 获取时间戳时，linux为func
                 temp_obj = StationRealDataSpecific(station_code=station_code, tid=-1, surge=DEFAULT_SURGE,
                                                    gmt_realtime=temp_dt_utc,
-                                                   ts=temp_dt_ar_utc.timestamp,
+                                                   ts=temp_dt_ar_utc.timestamp(),
                                                    )
                 result.append(temp_obj)
 

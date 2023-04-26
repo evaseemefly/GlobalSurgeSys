@@ -3,10 +3,12 @@ from typing import Optional
 from sqlalchemy import ForeignKey
 from sqlalchemy import String
 from sqlalchemy.orm import DeclarativeBase
+# from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Mapped
 # from sqlalchemy import ForeignKey, Sequence, MetaData
 from sqlalchemy import Column, Date, Float, ForeignKey, Integer, text
 from sqlalchemy.dialects.mysql import DATETIME, INTEGER, TINYINT, VARCHAR
+# TODO:[-] 23-04-25 ImportError: cannot import name 'mapped_column' from 'sqlalchemy.orm'
 from sqlalchemy.orm import mapped_column, DeclarativeBase
 from datetime import datetime
 from arrow import Arrow

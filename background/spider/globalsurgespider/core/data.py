@@ -88,12 +88,17 @@ class StationSurgeRealData:
         for temo_month, temp_realdata_list in dict_distmonth_realdata.items():
             # temp_realdata_dict
             # 取出第一个
-            now_arrow: Arrow = temp_realdata_list[0].get('dt')
+            # - 23-04-26 注意 temp_realdata_list[0].get('dt') 是 datetime.datetime ，需要转为 arrow
+            now_arrow: Arrow = arrow.get(temp_realdata_list[0].get('dt'))
             tab_name: str = self._get_split_tab_name(now_arrow)
             station_code: str = self.station_code
             if self._check_exist_tab(tab_name):
-                # 动态更新表名
-                self._insert_realdata(tab_name, station_code, realdata_list, to_coverage=to_coverage)
+                pass
+            else:
+                # 若不存在指定的表，需要创建该表
+                self._create_station_realdata_tab(tab_name)
+            # 动态更新表名
+            self._insert_realdata(tab_name, station_code, realdata_list, to_coverage=to_coverage)
 
         pass
 
@@ -219,10 +224,10 @@ class StationSurgeRealData:
         meta_data = MetaData()
         Table(tab_name, meta_data, Column('id', Integer, primary_key=True),
               Column('is_del', TINYINT(1), nullable=False, server_default=text("'0'"), default=0),
-              Column('station_code', VARCHAR(200), nullable=False), Column('tid', Integer, nullable=False),
+              Column('station_code', VARCHAR(200), nullable=False, index=True), Column('tid', Integer, nullable=False),
               Column('surge', Float, nullable=False),
               Column('ts', Integer, nullable=False),
-              Column('gmt_realtime', DATETIME(fsp=6), default=datetime.utcnow),
+              Column('gmt_realtime', DATETIME(fsp=6), default=datetime.utcnow, index=True),
               Column('gmt_create_time', DATETIME(fsp=6), default=datetime.utcnow),
               Column('gmt_modify_time', DATETIME(fsp=6), default=datetime.utcnow))
         db_factory = DbFactory()
@@ -249,7 +254,7 @@ class SpiderTask:
 
     def to_db(self) -> int:
         interval: int = TASK_OPTIONS.get('interval')
-        task_info: SpiderTaskInfo = SpiderTaskInfo(timestamp=self.now_utc.timestamp, task_name=self.task_name,
+        task_info: SpiderTaskInfo = SpiderTaskInfo(timestamp=self.now_utc.timestamp(), task_name=self.task_name,
                                                    task_type=TaskTypeEnum.SUCCESS.value,
                                                    spider_count=self.count_stations, interval=interval)
         # with DbFactory().Session as session:
