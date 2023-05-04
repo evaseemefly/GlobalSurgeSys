@@ -10,7 +10,7 @@ import numpy as np
 
 from common.enums import TaskTypeEnum
 from globalsurgespider.items import StationSurgeListItem
-from models.models import StationRealDataSpecific, SpiderTaskInfo, StationStatus
+from models.models import StationRealDataSpecific, SpiderTaskInfo, StationStatus, StationRealDataIndex
 from sqlalchemy import ForeignKey, Sequence, MetaData, Table
 from sqlalchemy import Column, Date, Float, ForeignKey, Integer, text
 from sqlalchemy.dialects.mysql import DATETIME, INTEGER, TINYINT, VARCHAR
@@ -96,7 +96,7 @@ class StationSurgeRealData:
                 pass
             else:
                 # 若不存在指定的表，需要创建该表
-                self._create_station_realdata_tab(tab_name)
+                self._create_station_realdata_tab(tab_name, now_arrow)
             # 动态更新表名
             self._insert_realdata(tab_name, station_code, realdata_list, to_coverage=to_coverage)
 
@@ -180,7 +180,7 @@ class StationSurgeRealData:
         tab_name: str = self._get_split_tab_name(dt)
         is_need = False
         if self._check_exist_tab(tab_name) is False or (self._check_exist_tab(tab_name) and to_create):
-            is_need = self._create_station_realdata_tab(tab_name)
+            is_need = self._create_station_realdata_tab(tab_name, dt)
         return is_need
 
     def _get_split_tab_name(self, dt: Arrow) -> str:
@@ -214,7 +214,7 @@ class StationSurgeRealData:
         return is_exist
         pass
 
-    def _create_station_realdata_tab(self, tab_name: str) -> bool:
+    def _create_station_realdata_tab(self, tab_name: str, dt: arrow.Arrow) -> bool:
         """
             根据 tab_name 创建对应的潮位实况表
         @param tab_name:
@@ -241,6 +241,17 @@ class StationSurgeRealData:
                 is_ok = True
             except Exception as ex:
                 print(ex.args)
+        # TODO:[-] 23-04-28 还需要插入表 station_realdata_index
+        year: int = dt.format('yyyy')
+        local_start: arrow.Arrow = arrow.Arrow(year=year, month=dt.format('MM'), day=1, hour=0, minute=0)
+        local_end: arrow.Arrow = local_start.shift(month=1)
+        gmt_start: arrow.Arrow = local_start.shift(hour=-8)
+        gmt_end: arrow.Arrow = local_end.shift(hour=-8)
+        tab_index: StationRealDataIndex = StationRealDataIndex(tab_name=tab_name, year=year,
+                                                               gmt_start=gmt_start.datetime,
+                                                               gmt_end=gmt_end.datetime)
+        session.add(tab_index)
+        session.commit()
         return is_ok
 
 
