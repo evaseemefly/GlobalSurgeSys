@@ -7,6 +7,11 @@ import subprocess
 import arrow
 from scrapy.cmdline import execute
 from datetime import datetime
+import os
+
+dir_path = os.path.dirname(os.path.abspath(__file__))
+print(dir_path)
+os.chdir(dir_path)
 
 
 # sched = BlockingScheduler()
@@ -15,7 +20,7 @@ from datetime import datetime
 # sys.setdefaultencoding('utf-8')
 
 
-@repeat(every(10).minutes)
+@repeat(every(1).minutes)
 def delay_global_station():
     now_utc_str: str = arrow.utcnow().format('YYYYMMDDHHmm')
     print(f'doing delay task:{now_utc_str}')

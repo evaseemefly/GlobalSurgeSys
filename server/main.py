@@ -19,7 +19,8 @@ origins = [
     "http://localhost:8081",
     "http://localhost:8081",
     "http://0.0.0.0:8081",
-    "http://127.0.0.1:8081"
+    "http://127.0.0.1:8081",
+    "http://128.5.9.79:8085"
 ]
 
 
@@ -49,7 +50,7 @@ def run():
     """
     启动项目
     """
-    uvicorn.run(app='main:init_app', host="0.0.0.0", port=8080)
+    uvicorn.run(app='main:init_app', host="0.0.0.0", port=8086)
 
 
 def main():
