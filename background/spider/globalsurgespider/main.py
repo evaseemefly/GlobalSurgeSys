@@ -20,6 +20,7 @@ os.chdir(dir_path)
 # sys.setdefaultencoding('utf-8')
 
 
+
 @repeat(every(30).minutes)
 def delay_global_station():
     now_utc_str: str = arrow.utcnow().format('YYYYMMDDHHmm')
@@ -34,6 +35,10 @@ def delay_global_station():
     # docker 作为解释器环境时，此种方式会出错
     # subprocess.Popen('scrapy crawl globalStationStatus -s LOG_FILE=/opt/project/logs/logs.log'.split(), shell=True
     #                  )
+    # subprocess.Popen(
+    #     'scrapy crawl globalStationStatus -s LOG_FILE=D:/01Proj/GlobalSurgeSys/background/spider/globalsurgespider/logs/logs.log'.split(),
+    #     shell=True
+    #     )
     # 在 docker 作为解释器环境时，使用此种方式
     # 只会执行一次
     # execute('scrapy crawl globalStationStatus -s LOG_FILE=/opt/project/logs/logs.log'.split())
