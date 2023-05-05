@@ -144,12 +144,14 @@ class StationSurgeRealData:
                 # surge:int=
                 if len(temp_query) > 0:
                     # update
-                    self.session.execute(
-                        update(StationRealDataSpecific).where(
-                            StationRealDataSpecific.station_code == station_code).where(
-                            StationRealDataSpecific.gmt_realtime == temp_realdata['dt']).values(
-                            surge=surge, gmt_modify_time=temp_now)).execute_options(
-                        synchronize_session="evaluate")
+                    # 在执行如下 update 操作时出错
+                    stmt = update(StationRealDataSpecific).where(
+                        StationRealDataSpecific.station_code == station_code).where(
+                        StationRealDataSpecific.gmt_realtime == temp_realdata['dt']).values(
+                        surge=surge)
+                    self.session.execute(stmt)\
+                        # .execute_options(
+                    # synchronize_session="evaluate")
                 else:
                     obj_realdata = StationRealDataSpecific(station_code=station_code, surge=surge,
                                                            tid=self.tid,
@@ -157,6 +159,7 @@ class StationSurgeRealData:
                                                            ts=temp_realdata['ts'])
                     self.session.add(obj_realdata)
             except Exception as ex:
+                # print('[!]func: _insert_realdata ERROR!')
                 print(ex.args)
 
         self.session.commit()

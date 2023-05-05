@@ -28,6 +28,11 @@ class GlobalstationstatusSpider(scrapy.Spider):
     start_urls = ['http://www.ioc-sealevelmonitoring.org/service.php?server=gml&show=active&showgauges=t']
     session = DbFactory().Session
 
+    def parse_backup(self, response: XmlResponse):
+        utc_now_str: str = arrow.Arrow.utcnow().format('YYYY-MM-DD HH:mm:ss ZZ')
+        print(f'[-] 执行定时任务:{utc_now_str}')
+        pass
+
     def parse(self, response: XmlResponse):
 
         # print(response)
@@ -201,7 +206,7 @@ class GlobalstationstatusSpider(scrapy.Spider):
                  'surge': 2.2037,
                  'ts': 1676403720}[]
         """
-        count: int = 30
+        count: int = 60
         tid = response.meta['tid']
         station_code = response.meta['station_code']
         list_station_surge: List[dict] = self.station_surge_html2list(response, SPIDER_TITLE_STAMPS, station_code)

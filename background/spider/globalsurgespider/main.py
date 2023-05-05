@@ -20,13 +20,13 @@ os.chdir(dir_path)
 # sys.setdefaultencoding('utf-8')
 
 
-@repeat(every(1).minutes)
+@repeat(every(30).minutes)
 def delay_global_station():
     now_utc_str: str = arrow.utcnow().format('YYYYMMDDHHmm')
     print(f'doing delay task:{now_utc_str}')
     # 方法1:
-    # subprocess.Popen('scrapy crawl globalStationStatus -s LOG_FILE=./logs/logs.log'.split()
-    #                  )
+    subprocess.Popen('scrapy crawl globalStationStatus -s LOG_FILE=./logs/logs.log'.split()
+                     )
     # 注意使用docker时，需要制定LOG_FILE 的绝对路径'
     # TODO:[*] 23-04-26
     #     raise child_exception_type(errno_num, err_msg, err_filename)
@@ -35,7 +35,8 @@ def delay_global_station():
     # subprocess.Popen('scrapy crawl globalStationStatus -s LOG_FILE=/opt/project/logs/logs.log'.split(), shell=True
     #                  )
     # 在 docker 作为解释器环境时，使用此种方式
-    execute('scrapy crawl globalStationStatus -s LOG_FILE=/opt/project/logs/logs.log'.split())
+    # 只会执行一次
+    # execute('scrapy crawl globalStationStatus -s LOG_FILE=/opt/project/logs/logs.log'.split())
     # 方法2: 此种办法执行结束后会关闭
     # execute('scrapy crawl globalStationStatus'.split())
 
