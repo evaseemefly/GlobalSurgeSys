@@ -10,6 +10,7 @@ from sqlalchemy import Column, Date, Float, ForeignKey, Integer, text
 from sqlalchemy.dialects.mysql import DATETIME, INTEGER, TINYINT, VARCHAR
 # TODO:[-] 23-04-25 ImportError: cannot import name 'mapped_column' from 'sqlalchemy.orm'
 from sqlalchemy.orm import mapped_column, DeclarativeBase
+from sqlalchemy_utc import UtcDateTime
 from datetime import datetime
 from arrow import Arrow
 from db.db_factory import DBFactory
@@ -155,7 +156,8 @@ class StationStatus(IIdModel, IDel, IModel):
     """
     station_code: Mapped[str] = mapped_column(default=DEFAULT_CODE)
     status: Mapped[int] = mapped_column(nullable=False, default=TaskTypeEnum.FAIL.value)
-    gmt_realtime: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+    # gmt_realtime: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+    gmt_realtime = Column(UtcDateTime)
     # 所属的 SpiderTaskInfo id
     tid: Mapped[int] = mapped_column(nullable=False, default=0)
     # -----

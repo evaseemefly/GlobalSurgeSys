@@ -38,6 +38,16 @@ def get_all_station_status():
     #   field required (type=value_error.missing)
     # ...
     # temp_station_dict = {**temp_station}
+    # res_dict: list[dict] = []
+    # for temp in list(station_res):
+    #     temp_dict = {'id': temp.id, 'station_code': temp.station_code, 'status': temp.status, 'is_del': temp.is_del,
+    #                  'tid': temp.tid, 'gmt_realtime': temp.gmt_realtime, 'gmt_modify_time': temp.gmt_modify_time}
+    #     res_dict.append(temp_dict)
+    # res_dict: list[dict] = [
+    #     {'station_code': temp['station_code'], 'status': temp['status'], 'is_del': temp['is_del'],
+    #      'lat': temp['lat'], 'lon': temp['lon'], 'rid': temp['rid'], 'surge': temp['surge'], } for temp
+    #     in
+    #     station_res]
     return station_res
 
 
