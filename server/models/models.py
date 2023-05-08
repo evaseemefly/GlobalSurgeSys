@@ -7,6 +7,7 @@ from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.orm import Mapped
 # from sqlalchemy import ForeignKey, Sequence, MetaData
 from sqlalchemy import Column, Date, Float, ForeignKey, Integer, text
+import sqlalchemy as sa
 from sqlalchemy.dialects.mysql import DATETIME, INTEGER, TINYINT, VARCHAR
 # TODO:[-] 23-04-25 ImportError: cannot import name 'mapped_column' from 'sqlalchemy.orm'
 from sqlalchemy.orm import mapped_column, DeclarativeBase
@@ -56,13 +57,16 @@ class IModel(BaseMeta):
         model 抽象父类，主要包含 创建及修改时间
     """
     __abstract__ = True
-    gmt_create_time: Mapped[datetime] = mapped_column(default=datetime.utcnow)
-    gmt_modify_time: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+    # gmt_create_time: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+    # gmt_modify_time: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+    gmt_create_time = Column(UtcDateTime)
+    gmt_modify_time = Column(UtcDateTime)
 
 
 class IRealDataDt(BaseMeta):
     __abstract__ = True
-    gmt_realtime: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+    # gmt_realtime: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+    gmt_realtime = Column(UtcDateTime)
     ts: Mapped[int] = mapped_column(default=0)
 
 
@@ -73,8 +77,11 @@ class StationRealDataIndex(IIdModel, IDel, IModel):
     """
     table_name: Mapped[str] = mapped_column(default=DEFAULT_TABLE_NAME)
     year: Mapped[int] = mapped_column(default=DEFAULT_YEAR)
-    gmt_start: Mapped[datetime] = mapped_column(default=datetime.utcnow)
-    gmt_end: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+    # gmt_start: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+    # gmt_end: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+
+    gmt_start = Column(UtcDateTime)
+    gmt_end = Column(UtcDateTime)
     __tablename__ = 'station_realdata_index'
 
 
@@ -156,7 +163,7 @@ class StationStatus(IIdModel, IDel, IModel):
     """
     station_code: Mapped[str] = mapped_column(default=DEFAULT_CODE)
     status: Mapped[int] = mapped_column(nullable=False, default=TaskTypeEnum.FAIL.value)
-    # gmt_realtime: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+    # gmt_realtime: Mapped[datetime] = Column(sa.DATETIME(timezone=False), nullable=False)
     gmt_realtime = Column(UtcDateTime)
     # 所属的 SpiderTaskInfo id
     tid: Mapped[int] = mapped_column(nullable=False, default=0)
