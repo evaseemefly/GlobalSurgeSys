@@ -1,0 +1,1 @@
+nohup /home/nmefc/anaconda3/envs/env_global_surge_py37/bin/python main.py 

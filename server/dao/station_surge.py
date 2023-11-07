@@ -33,8 +33,8 @@ class StationSurgeDao(BaseDao):
                                                                              False, True)
         if self._check_need_split_tab(gmt_start, gmt_end):
             list_surge.extend(
-                self.get_station_surge_list(station_code, gmt_start, gmt_end, is_use_starttime_split=False,
-                                            is_desc=False, is_hourly=True))
+                self.get_target_dt_surge(station_code, gmt_start, gmt_end, is_use_starttime_split=False,
+                                         is_desc=False, is_hourly=True))
         # TODO:[*] 23-04-03 此处加入拼接
         # step1: 根据起止时间生成时间集合
         # 时间间隔单位(单位:s)——以1h为时间间隔步长
