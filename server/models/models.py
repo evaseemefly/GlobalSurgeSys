@@ -75,6 +75,7 @@ class StationRealDataIndex(IIdModel, IDel, IModel):
         实况索引表
         分表索引使用 索引对象为 tb: StationRealDataSpecific
     """
+
     table_name: Mapped[str] = mapped_column(default=DEFAULT_TABLE_NAME)
     year: Mapped[int] = mapped_column(default=DEFAULT_YEAR)
     # gmt_start: Mapped[datetime] = mapped_column(default=datetime.utcnow)
@@ -104,18 +105,18 @@ class StationRealDataSpecific(IIdModel, IDel, IModel, IRealDataDt):
     __tablename__ = 'station_realdata_specific'
 
     @classmethod
-    def get_split_tablename(dt: datetime) -> str:
+    def get_split_tablename(cls, dt: datetime) -> str:
         return get_split_tablename(dt)
 
     @classmethod
-    def set_tablename(self, dt: datetime):
+    def set_tablename(cls, dt: datetime):
         """
             根据传入的 dt 动态设置当前表名
         @param dt:
         @return:
         """
-        tab_name: str = self.get_split_tablename(dt)
-        self.__table__.name = tab_name
+        tab_name: str = cls.get_split_tablename(dt)
+        cls.__table__.name = tab_name
 
 
 class StationAstronomicTideRealDataModel(IIdModel, IDel, IModel, IRealDataDt):

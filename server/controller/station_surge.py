@@ -14,7 +14,10 @@ app = APIRouter()
 @app.get('/one/', response_model=List[StationSurgeSchema],
          summary="获取单站的历史潮位集合")
 def get_one_station_surges(station_code: str, start_dt: datetime, end_dt: datetime):
-    surge_list = StationSurgeDao().get_station_surge_list(station_code, start_dt, end_dt)
+    # 方式1: 使用原生sql
+    # surge_list = StationSurgeDao().get_station_surge_list(station_code, start_dt, end_dt)
+    # 方式2: 使用 orm style2.0
+    surge_list = StationSurgeDao().get_station_surge_list_bysqlbindparams(station_code, start_dt, end_dt)
     return surge_list
 
 
@@ -46,5 +49,3 @@ def get_stations_surge_by_dt(now: datetime = datetime.utcnow()):
     """
     target_dt_station_list = StationSurgeDao().get_dist_station_surge_list_by_dt(now)
     return target_dt_station_list
-
-
