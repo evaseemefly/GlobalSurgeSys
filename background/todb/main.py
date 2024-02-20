@@ -44,14 +44,24 @@ def to_db():
 
 
 def to_do_astronomictide():
-    dir_path: str = r'D:\01Proj\GlobalSurgeSys\background\byjupyter\base_data'
-    start_dt_ar: arrow.Arrow = arrow.get(2023, 1, 1, 0, 0)
+    """
+        自动录入天文潮-2024
+    @return:
+    """
+    dir_path: str = r'D:\01Proj\GlobalSurgeSys\background\byjupyter\data\2024\to_read'
+    start_dt_ar: arrow.Arrow = arrow.get(2024, 1, 1, 0, 0)
     list_pathes: List[pathlib.Path] = read_path_files_list(dir_path)
     for temp_path in list_pathes:
         # 从文件名中截取 station_code
         # eg: 1epme2_2023
         # 98caph_2023 | 94mona2_2023 | 101jrmi_2023
         # 截取 98caph 用正则匹配 字母到结尾
+        # 129wpwa
+        # 128asto2_2021_2024
+        # TODO:[-] 24-02-18 输出的站点名称包含了数字
+        # eg: 13cbmd2_2021_2024 -> 13cbmd2 -> cbmd2
+        # 匹配第一个英文字母开始至结束
+        # [a-zA-Z]{4}*$
         temp_name_stamp: str = temp_path.name.split('_')[0]
         # 截取 station code
         re_str: str = '[A-Za-z]+[0-9]*$'
@@ -62,7 +72,12 @@ def to_do_astronomictide():
         # temp_station_code = temp_path.name.split('_')[0][1:]
         # print(temp_station_code)
         list_astronomic = read_all_astronomictide_2db(str(temp_path), temp_station_code, start_dt_ar)
-        astronomictide_2db(list_astronomic, temp_station_code)
+        is_ok = astronomictide_2db(list_astronomic, temp_station_code)
+        if is_ok:
+            # print(f'[-] 写入{temp_name_stamp}成功~')
+            pass
+        else:
+            print(f'[*] 写入{temp_name_stamp}失败!')
     pass
 
 
@@ -91,9 +106,15 @@ def read_all_astronomictide_2db(full_path: str, station_code: str, start_dt_ar: 
         return list_realdata
 
 
-def astronomictide_2db(list_astronomi: List[dict], station_code: str):
+def astronomictide_2db(list_astronomic: List[dict], station_code: str):
+    """
+        将指定站点 station_code 的所有天文潮集合 list_astronomic 写入db
+    @param list_astronomic:
+    @param station_code:
+    @return:
+    """
     is_standard: bool = True
-    for temp_ in list_astronomi:
+    for temp_ in list_astronomic:
         # TODO:[-] 23-04-07 注意此处需要加入判断
         if temp_['val'] == 999:
             is_standard = False
@@ -106,14 +127,10 @@ def astronomictide_2db(list_astronomi: List[dict], station_code: str):
                 temp_model = StationAstronomicTideRealDataModel(station_code=station_code,
                                                                 gmt_realtime=temp_['dt'].datetime,
                                                                 surge=temp_['val'],
-                                                                ts=temp_['dt'].timestamp)
+                                                                ts=temp_['dt'].int_timestamp)
             session.add(temp_model)
     session.commit()
-    if is_standard:
-        # print(f'[-] 写入{station_code}成功~')
-        pass
-    else:
-        print(f'[*] 写入{station_code}失败!')
+    return is_standard
 
 
 def read_path_files_list(dir_path: str) -> List[pathlib.Path]:
