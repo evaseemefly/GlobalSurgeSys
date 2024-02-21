@@ -55,6 +55,7 @@ class StationAstronomicTideDao(BaseDao):
         :return:
         """
         session: Session = self.db.session
+        # 使用此种方式不需要将 时间进行手动转换
         filter_query = session.query(StationAstronomicTideRealDataModel).filter(
             StationAstronomicTideRealDataModel.station_code == station_code,
             StationAstronomicTideRealDataModel.gmt_realtime >= start,

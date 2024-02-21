@@ -310,13 +310,28 @@ class StationSurgeDao(BaseDao):
                   AND MINUTE({tb_name}.gmt_realtime) = 0
                 ORDER BY {tb_name}.gmt_realtime {order_desc}
             """)
-            # start:'2024-01-31 03:32:56+00:00'
-            # end:'2024-02-03 03:32:56+00:00'
-            sql = sql_str.bindparams(start=arrow.get(start).format('YYYY-MM-DDTHH:mm:ss.SSS') + 'Z',
-                                     end=arrow.get(end).format('YYYY-MM-DDTHH:mm:ss.SSS') + 'Z',
-                                     station_code=station_code)
+            # start: '2024-01-31 03:32:56+00:00'
+            # end: '2024-02-03 03:32:56+00:00'
+            # start_str: '2024-01-31T03:32:56.928Z'
+            # end_str: '2024-02-03T03:32:56.928Z'
+            # TODO:[-] 24-02-21 注意此处使用 原生sql 进行拼接时，需要将 +00:00 改为 xxxZ!
+            start_str: str = arrow.get(start).format('YYYY-MM-DDTHH:mm:ss.SSS') + 'Z'
+            end_str: str = arrow.get(end).format('YYYY-MM-DDTHH:mm:ss.SSS') + 'Z'
+            # sql = sql_str.bindparams(start=start_str,
+            #                          end=end_str,
+            #                          station_code=station_code)
+
+            sql_str = text(f"""
+                            SELECT *
+                            FROM {tb_name}
+                            WHERE {tb_name}.gmt_realtime >= '{start_str}'
+                              AND {tb_name}.gmt_realtime <= '{end_str}'
+                              AND {tb_name}.station_code = '{station_code}'
+                              AND MINUTE({tb_name}.gmt_realtime) = 0
+                            ORDER BY {tb_name}.gmt_realtime {order_desc}
+                        """)
             # 使用以下方式 session.query(Model).from_statement(xx) 可返回查询 model 集合
-            res = session.query(StationRealDataSpecific).from_statement(sql)
+            res = session.query(StationRealDataSpecific).from_statement(sql_str)
             res = res.all()
             return res
         return []
