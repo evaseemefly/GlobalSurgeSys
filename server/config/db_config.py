@@ -14,7 +14,7 @@ class DBConfig:
     host = '128.5.9.79'
     port = '3306'
     username = 'root'
-    password = ''
+    password = 'Nmefc_814'
     database = 'surge_global_sys'
     charset = 'utf8mb4'
     table_name_prefix = ''
