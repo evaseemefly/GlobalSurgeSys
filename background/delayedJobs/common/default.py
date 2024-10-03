@@ -1,5 +1,10 @@
 from arrow import Arrow
 
+from common.enums import NullEnum
+
+NONE_ARGS = None
+"""传入参数缺省值"""
+
 UNLESS_CODE = 'UNLESS'
 DEFAULT_CODE = 'DEFAULT'
 DEFAULT_NAME = 'DEFAULT'
@@ -25,7 +30,7 @@ DEFAULT_TABLE_NAME = 'DEFAULT_TABLE_NAME'
 DEFAULT_YEAR = 1970
 DEFAULT_DT_STR = '197001010000'
 DEFAULT_COUNTRY_INDEX = -1
-DEFAULT_ENUM = -1
+DEFAULT_ENUM = NullEnum.value
 # 默认概率
 DEFAULT_PRO = 0.5
 

@@ -2,6 +2,11 @@ from enum import Enum, unique
 
 
 @unique
+class NullEnum(Enum):
+    NULL = -1
+
+
+@unique
 class ElementTypeEnum(Enum):
     """
         预报要素种类枚举
@@ -86,6 +91,10 @@ class ForecastAreaEnum(Enum):
         全球预报产品的预报区域
     """
     AMERICA = 5002
+    """美国"""
     INDIA_OCEAN = 5003
+    """印度洋"""
     OCEANIA = 5004
+    """大洋洲"""
     WNP = 5005
+    """西北太"""

@@ -37,6 +37,12 @@ class ReadataStoreError(Exception):
     """
     pass
 
+class CoverageStoreError(Exception):
+    """
+        栅格图层写入db异常
+    """
+    pass
+
 
 class FileFormatError(Exception):
     """
