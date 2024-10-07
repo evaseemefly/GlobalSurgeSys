@@ -136,17 +136,24 @@ class GlobalSurgeJob(IJob):
         """批量下载后的原始文件"""
 
         # step2: 下载文件标准化并转存为tiff: standard -> transform
+        # TODO:[*] 24-10-07 对于最后一个文件中有含有hmax attribute 应对文件名加以区分
         for temp_file in list_source_files:
             # step2-1: 批量下载后的文件生成 store对象
-            source_file_store: CoverageStore = SurgeNcStore(temp_file, RasterFileType.NETCDF)
+            source_file_store: SurgeNcStore = SurgeNcStore(temp_file, RasterFileType.NETCDF)
             source_raster_type: RasterFileType = RasterFileType.NETCDF
+            is_contained_max: bool = source_file_store.is_contained_max()
+            """是否包含max属性"""
+
             source_file_store.to_db()
             # step2-2: 文件提取并转换
             temp_transformer = GlobalSurgeTransformer(temp_file)
             """当前 file 对应的转换器 instance"""
             temp_transformer.read_data()
+
             out_put_file: Optional[ForecastProductFile] = temp_transformer.out_put()
             """输出的geotiff文件 instance"""
+
+            # TODO:[*] 24-10-07 对于包含 max 属性的 nc需要多加一步处理max->geotiff
 
             # step2-3:存储 tif文件 store
             out_put_raster_type: RasterFileType = RasterFileType.GEOTIFF

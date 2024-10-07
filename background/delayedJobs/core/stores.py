@@ -39,7 +39,7 @@ class CoverageStore(IStore):
         """当前的栅格类型"""
 
     def raster_2_db(self, file: ForecastProductFile, raster_type: RasterFileType, issue_dt, issue_ts, forecast_dt,
-                    forecast_ts, session: Session) -> None:
+                    forecast_ts, is_contained_max: bool, session: Session) -> None:
         """
             栅格文件信息写入db
         :param file: 栅格文件
@@ -67,6 +67,7 @@ class CoverageStore(IStore):
             temp_file_model.forecast_ts = forecast_ts
             temp_file_model.release_ts = issue_ts
             temp_file_model.release_time = issue_dt
+            temp_file_model.is_contained_max = is_contained_max
             """发布时间+预报时间"""
             session.add(temp_file_model)
             session.commit()
@@ -89,10 +90,14 @@ class CoverageStore(IStore):
         issue_ts = kwargs.get('issue_ts', NONE_ARGS)
         forecast_dt = kwargs.get('forecast_dt', NONE_ARGS)
         forecast_ts = kwargs.get('forecast_ts', NONE_ARGS)
+        is_contained_max: bool = kwargs.get('is_contained_max', NONE_ARGS)
+        """是否包含最大值"""
+
         with session_yield_scope() as session:
             try:
                 # step1: 直接将 raster file 文件信息写入 db
-                self.raster_2_db(self.file, self.raster_type, issue_dt, issue_ts, forecast_dt, forecast_ts, session)
+                self.raster_2_db(self.file, self.raster_type, issue_dt, issue_ts, forecast_dt, forecast_ts,
+                                 is_contained_max, session)
                 pass
             except Exception as e:
                 raise CoverageStoreError()
@@ -103,6 +108,16 @@ class SurgeNcStore(CoverageStore):
     """
         nc 文件存储器
     """
+
+    def is_contained_max(self) -> bool:
+        """
+            TODO:[*] 24-10-07 是否包含 max 属性(通过文件名判断)
+        @return:
+        """
+        is_contained = False
+        return is_contained
+        pass
+
     pass
 
 

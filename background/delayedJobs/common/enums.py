@@ -28,30 +28,6 @@ class RasterFileType(Enum):
 
 
 @unique
-class ExtremumType(Enum):
-    """
-        极值美剧
-    """
-    WIND_EXTREMUM = 801
-    """风速极值"""
-
-    WIND_MAX = 802
-    """风速最大值"""
-
-
-@unique
-class RegionGroupEnum(Enum):
-    """
-        站点归属(海洋局|水利部)
-    """
-    HAIYANG = 1001
-    """海洋局"""
-
-    SHUILI = 1002
-    """水利部"""
-
-
-@unique
 class RunTypeEnmum(Enum):
     """
         执行 task 类型

@@ -31,6 +31,9 @@ class GeoNCFileModel(IDel, IIdIntModel, ICoverageFileModel, IReleaseTime, IModel
     product_type: Mapped[int] = mapped_column(default=DEFAULT_ENUM)
     """预报产品类型"""
 
+    is_contained_max: bool = mapped_column(default=False)
+    """是否包含max属性"""
+
 
 class GeoTifFileModel(IDel, IIdIntModel, ICoverageFileModel, IReleaseTime, IForecastTime, IModel):
     """
@@ -42,6 +45,10 @@ class GeoTifFileModel(IDel, IIdIntModel, ICoverageFileModel, IReleaseTime, IFore
     """预报区域"""
     product_type: Mapped[int] = mapped_column(default=DEFAULT_ENUM)
     """预报产品类型"""
+
+
+
+
 
 
 class RelaNCTifModel(IIdIntModel):
