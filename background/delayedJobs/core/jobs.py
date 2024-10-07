@@ -6,7 +6,7 @@ import arrow
 
 from common.dicts import dict_area
 from common.enums import ForecastAreaEnum, ElementTypeEnum, RasterFileType
-from core.stores import CoverageStore
+from core.stores import CoverageStore, SurgeNcStore, SurgeTifStore
 from core.transformers import GlobalSurgeTransformer
 from mid_models.files import ForecastProductFile
 from util.ftp import FtpClient
@@ -138,7 +138,7 @@ class GlobalSurgeJob(IJob):
         # step2: 下载文件标准化并转存为tiff: standard -> transform
         for temp_file in list_source_files:
             # step2-1: 批量下载后的文件生成 store对象
-            source_file_store: CoverageStore = CoverageStore(temp_file, RasterFileType.NETCDF)
+            source_file_store: CoverageStore = SurgeNcStore(temp_file, RasterFileType.NETCDF)
             source_raster_type: RasterFileType = RasterFileType.NETCDF
             source_file_store.to_db()
             # step2-2: 文件提取并转换
@@ -150,7 +150,7 @@ class GlobalSurgeJob(IJob):
 
             # step2-3:存储 tif文件 store
             out_put_raster_type: RasterFileType = RasterFileType.GEOTIFF
-            out_put_store = CoverageStore(out_put_file, out_put_raster_type)
+            out_put_store = SurgeTifStore(out_put_file, out_put_raster_type)
             # step3: 将文件信息写入db
             # 将store写入db
             out_put_store.to_db()

@@ -38,21 +38,6 @@ class CoverageStore(IStore):
         self.raster_type = raster_type
         """当前的栅格类型"""
 
-    def to_db(self, **kwargs):
-        # 根据文件名称获取对应的预报时间(或从读取信息获取对应的发布与预报时间)
-        issue_dt = kwargs.get('issue_dt', NONE_ARGS)
-        issue_ts = kwargs.get('issue_ts', NONE_ARGS)
-        forecast_dt = kwargs.get('forecast_dt', NONE_ARGS)
-        forecast_ts = kwargs.get('forecast_ts', NONE_ARGS)
-        with session_yield_scope() as session:
-            try:
-                # step1: 直接将 raster file 文件信息写入 db
-                self.raster_2_db(self.file, self.raster_type, issue_dt, issue_ts, forecast_dt, forecast_ts, session)
-                pass
-            except Exception as e:
-                raise CoverageStoreError()
-        pass
-
     def raster_2_db(self, file: ForecastProductFile, raster_type: RasterFileType, issue_dt, issue_ts, forecast_dt,
                     forecast_ts, session: Session) -> None:
         """
@@ -70,7 +55,7 @@ class CoverageStore(IStore):
             RasterFileType.NETCDF: GeoNCFileModel,
             RasterFileType.GEOTIFF: GeoTifFileModel
         }
-        """file model switcer选择器"""
+        """file model switch 选择器"""
 
         try:
             temp_file_model = switcher_dict.get(raster_type)
@@ -90,3 +75,39 @@ class CoverageStore(IStore):
             raise CoverageStoreError
 
         pass
+
+    # @abstractmethod
+    # def to_db(self, **kwargs):
+    #     """
+    #         写入db
+    #     """
+    #     pass
+
+    def to_db(self, **kwargs):
+        # 根据文件名称获取对应的预报时间(或从读取信息获取对应的发布与预报时间)
+        issue_dt = kwargs.get('issue_dt', NONE_ARGS)
+        issue_ts = kwargs.get('issue_ts', NONE_ARGS)
+        forecast_dt = kwargs.get('forecast_dt', NONE_ARGS)
+        forecast_ts = kwargs.get('forecast_ts', NONE_ARGS)
+        with session_yield_scope() as session:
+            try:
+                # step1: 直接将 raster file 文件信息写入 db
+                self.raster_2_db(self.file, self.raster_type, issue_dt, issue_ts, forecast_dt, forecast_ts, session)
+                pass
+            except Exception as e:
+                raise CoverageStoreError()
+        pass
+
+
+class SurgeNcStore(CoverageStore):
+    """
+        nc 文件存储器
+    """
+    pass
+
+
+class SurgeTifStore(CoverageStore):
+    """
+        geotiff 文件存储器
+    """
+    pass
