@@ -1,16 +1,36 @@
-# 这是一个示例 Python 脚本。
+from typing import List
 
-# 按 Ctrl+F5 执行或将其替换为您的代码。
-# 按 双击 Shift 在所有地方搜索类、文件、工具窗口、操作和设置。
+import arrow
+
+from common.enums import ForecastAreaEnum
+from conf.settings import DOWNLOAD_OPTIONS
+from core.jobs import GlobalSurgeJob, IJob
+
+REMOTE_ROOT_PATH: str = DOWNLOAD_OPTIONS.get('remote_root_path')
+LOCAL_ROOT_PATH: str = DOWNLOAD_OPTIONS.get('local_root_path')
 
 
-def print_hi(name):
-    # 在下面的代码行中使用断点来调试脚本。
-    print(f'Hi, {name}')  # 按 F9 切换断点。
+def daily_global_area_surge_forecast():
+    """
+        每日根据全部区域获取全球区域潮位预报产品定时任务
+
+    :return:
+    """
+    temp_test_dt: arrow.Arrow = arrow.Arrow(2024, 10, 14, 00)
+
+    issue_ts: int = temp_test_dt.int_timestamp
+    """
+    TODO:[*] 24-10-16  
+    当前准备获取的发布时间戳
+    """
+    # areas: List[ForecastAreaEnum] = [ForecastAreaEnum.WNP, ForecastAreaEnum.AMERICA, ForecastAreaEnum.OCEANIA,
+    #                                  ForecastAreaEnum.INDIA_OCEAN]
+
+    areas: List[ForecastAreaEnum] = [ForecastAreaEnum.WNP, ForecastAreaEnum.INDIA_OCEAN]
+    for area_temp in areas:
+        surge_job_temp: IJob = GlobalSurgeJob(issue_ts, LOCAL_ROOT_PATH, area_temp, REMOTE_ROOT_PATH)
+        surge_job_temp.to_do()
 
 
-# 按间距中的绿色按钮以运行脚本。
 if __name__ == '__main__':
-    print_hi('PyCharm')
-
-# 访问 https://www.jetbrains.com/help/pycharm/ 获取 PyCharm 帮助
+    daily_global_area_surge_forecast()

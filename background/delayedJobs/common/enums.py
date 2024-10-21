@@ -12,7 +12,7 @@ class ElementTypeEnum(Enum):
         预报要素种类枚举
     """
     SURGE = 6002
-    """预报-增水"""
+    """预报-逐时增水"""
     SURGE_MAX = 6003
     """预报-最大增水"""
 
@@ -25,30 +25,6 @@ class RasterFileType(Enum):
     """netcdf"""
     GEOTIFF = 6103
     """geotiff"""
-
-
-@unique
-class ExtremumType(Enum):
-    """
-        极值美剧
-    """
-    WIND_EXTREMUM = 801
-    """风速极值"""
-
-    WIND_MAX = 802
-    """风速最大值"""
-
-
-@unique
-class RegionGroupEnum(Enum):
-    """
-        站点归属(海洋局|水利部)
-    """
-    HAIYANG = 1001
-    """海洋局"""
-
-    SHUILI = 1002
-    """水利部"""
 
 
 @unique

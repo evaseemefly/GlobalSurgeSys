@@ -5,10 +5,10 @@ from typing import Optional, List, Dict
 import arrow
 
 from common.exceptions import FileFormatError
-from util.ftp import FtpClient
+from util.ftp import FtpClient, SFTPClient
 from util.common import get_store_relative_path, get_filestamp, get_calendarday_filestamp, \
     get_store_relative_exclude_day, get_fulltime_stamp, get_local_fulltime_stamp
-from common.enums import ElementTypeEnum, RegionGroupEnum
+from common.enums import ElementTypeEnum
 from util.decorators import decorator_timer_consuming, decorator_exception_logging
 
 
@@ -17,7 +17,7 @@ class IFile(ABC):
         文件接口
     """
 
-    def __init__(self, ftp_client: FtpClient, local_root_path: str, element_type: ElementTypeEnum,
+    def __init__(self, ftp_client: SFTPClient, local_root_path: str, element_type: ElementTypeEnum,
                  remote_root_path: str = None):
         """
 
@@ -77,6 +77,6 @@ class IFile(ABC):
         else:
             pathlib.Path(self.local_full_path).parent.mkdir(parents=True, exist_ok=True)
             # step2: 将ftp远端文件 在相对路径下 下载至本地 local_full_path 中
-        is_ok = self.ftp_client.down_load_file_bycwd(self.local_full_path, self.get_remote_path(),
-                                                     self.get_file_name())
+        is_ok = self.ftp_client.download_file(self.local_full_path, self.get_remote_path(),
+                                              self.get_file_name())
         return is_ok

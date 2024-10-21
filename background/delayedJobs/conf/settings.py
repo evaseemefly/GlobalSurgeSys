@@ -7,7 +7,7 @@ DATABASES = {
         # mac 尝试使用
         'ENGINE': 'mysqldb',  # 数据库引擎
         # 'ENGINE': 'mysqldb',  # 数据库引擎
-        'NAME': 'sys_station_montior',  # 数据库名
+        'NAME': 'surge_global_sys',  # 数据库名
         'USER': 'root',  # 账号
         'PASSWORD': db_pwd,
         # 'HOST': 'localhost',  # HOST
@@ -24,13 +24,11 @@ DATABASES = {
 }
 
 # 下载配置文件
+# TODO:[*] 24-10-16 全球风暴潮模式下载配置以此配置为准
 DOWNLOAD_OPTIONS = {
     # 挂载映射盘路径
     # 'remote_root_path': r'/data/remote',
-    'remote_root_path': r'X:',
-    'remote_station_root_path': r'/home/nmefc/share/test/ObsData/STATION',
-    'remote_fub_root_path': r'',
-    'remote_slb_root_path': r'/home/nmefc/share/test/ObsData/STATION',
+    'remote_root_path': r'/mnt/home/nmefc/surge/surge_glb_data/',
     # 线上环境
     # 'remote_root_path': r'/home/nmefc/data_remote/71_upload2surge_wd_surge/2023:',
     # 本地下载根目录

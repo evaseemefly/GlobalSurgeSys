@@ -3,7 +3,10 @@ from typing import List
 
 import arrow
 import ftplib
+# TODO:[-] 24-10-14 注意此处使用sftp，需要使用 pysftp库
+import pysftp
 import os
+import pathlib
 
 from loguru import logger
 
@@ -140,3 +143,97 @@ class FtpClient:
 
     def close(self):
         self.ftp.quit()
+
+
+class SFTPClient:
+    """
+        SFTP实现类
+    """
+
+    my_cnopts = pysftp.CnOpts()
+    my_cnopts.hostkeys = None  # 禁用主机密钥验证
+
+    def __init__(self, hostname, username, password, port=22):
+        self.hostname = hostname
+        self.username = username
+        self.password = password
+        self.port = port
+        self.connection = None
+
+    def connect(self):
+        try:
+            self.connection = pysftp.Connection(
+                host=self.hostname,
+                username=self.username,
+                password=self.password,
+                port=self.port,
+                cnopts=self.my_cnopts
+            )
+            print("Connection successfully established.")
+        except Exception as e:
+            # TODO:[*] 24-10-16 无法连接
+            # ERROR: Failed to connect: No hostkey for host 128.5.6.16 found.
+            """
+                    raise SSHException("No hostkey for host %s found." % host)
+                    paramiko.ssh_exception.SSHException: No hostkey for host 128.5.6.16 found.
+            """
+            print(f"Failed to connect: {e}")
+
+    def disconnect(self):
+        if self.connection:
+            self.connection.close()
+            print("Connection closed.")
+
+    def download_file(self, local_path: str, remote_path: str, file_name: str):
+        remote_full_path: str = str(pathlib.PurePosixPath(remote_path) / file_name)
+        local_full_path: str = str(pathlib.Path(local_path) / file_name)
+        try:
+            # 判断本地是否存在指定目录，不存在咋创建
+            if pathlib.Path(local_path).is_dir() is False:
+                pathlib.Path(local_path).mkdir(parents=True)
+            # TODO:[*] 24-10-16 下载错误
+            # '/mnt/home/nmefc/surge/surge_glb_data/WNP/model_output/2024101400/nc_latlon/WNP/
+            # field_2024-10-14_00_00_00.f0.nc/field_2024-10-14_00_00_00.f0.nc'
+            self.connection.get(remote_full_path, local_full_path)
+            print(f"Downloaded: {remote_full_path} to {local_full_path}")
+        except Exception as e:
+            # Failed to download file: [Errno 2] No such file or directory: 'E:\\05DATA\\01nginx_data\\nmefc_download\\WD_RESULT\\WNP\\model_output\\2024101400\\nc_latlon\\WNP\\field_2024-10-14_00_00_00.f0.nc'
+            print(f"Failed to download file: {e}")
+            pass
+
+    def download_files_in_cwd(self, local_dir: str, remote_path: str):
+        """
+            根据远端 remote_path 批量下载文件
+        @param local_dir:
+        @param remote_path:
+        @return:
+        """
+        try:
+            # 切换到远程工作目录
+            self.connection.chdir(remote_path)
+            print(f"Changed directory to: {remote_path}")
+
+            # 确保本地目录存在
+            if not os.path.exists(local_dir):
+                os.makedirs(local_dir)
+
+            # 列出远程目录中的文件并下载
+            files = self.connection.listdir()
+            for file in files:
+                self.download_file(remote_path, local_dir, file)
+        except Exception as e:
+            print(f"Failed to download files: {e}")
+
+    def get_nlist(self, remote_path: str) -> List[str]:
+        # 列出远程目录中的文件并下载
+        # TODO:[*] 24-10-16 路径有误，目前路径已重新修改
+        # ERROR     raise IOError(errno.ENOENT, text)
+        # FileNotFoundError: [Errno 2] No such file
+        #     '/mnt/home/nmefc/surge/surge_glb_data/IndiaOcean/WNP/model_output/2024101400/nc_latlon/WNP'
+        # 实际 /mnt/home/nmefc/surge/surge_glb_data/IndiaOcean/model_output/2024101400/nc_latlon/IndiaOcean
+        #     '/mnt/home/nmefc/surge/surge_glb_data/WNP/model_output/2024101400/nc_latlon/WNP'
+        # 切换目录为 remote_path
+        self.connection.cwd(remote_path)
+        files: List[str] = self.connection.listdir()
+        """获取当前目录下的所有文件集合"""
+        return files

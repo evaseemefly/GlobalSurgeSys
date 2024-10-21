@@ -10,7 +10,7 @@ import rioxarray
 
 from common.enums import ElementTypeEnum, RasterFileType
 from common.exceptions import FileDontExists, FileReadError, FileTransformError
-from mid_models.files import ForecastProductFile, ForecastSurgeRasterFile
+from mid_models.files import IForecastProductFile, ForecastSurgeRasterFile
 
 
 class GlobalSurgeTransformer:
@@ -18,7 +18,7 @@ class GlobalSurgeTransformer:
         全球预报产品转换器
     """
 
-    def __init__(self, file: ForecastProductFile):
+    def __init__(self, file: IForecastProductFile):
         self.file = file
         self._ds: xr.Dataset = None
         """标准化后的 h dataset """
@@ -68,12 +68,13 @@ class GlobalSurgeTransformer:
         if self._ds is not None:
             try:
                 # 将 'field_2024-09-22_18_00_00.f0.nc' -> 'field_2024-09-22_18_00_00.f0.tif'
+                # ['field_2024-10-14_00_00_00', 'f0']
                 file_splits = self.file.file_name.split('.')[:2]
-                file_splits.append('.tif')
-                transformer_file_name: str = ''.join(file_splits)
+                file_splits.append('tif')
+                transformer_file_name: str = '.'.join(file_splits)
                 out_put_file_path: str = str(pathlib.Path(
                     self.file.local_root_path) / self.file.relative_path / transformer_file_name)
-                self._ds.rioto_raster(out_put_file_path, diver=diver, compress=compress)
+                self._ds.rio.to_raster(out_put_file_path, diver=diver, compress=compress)
                 raster_file = ForecastSurgeRasterFile(self.file.area, element_type,
                                                       raster_type, transformer_file_name,
                                                       self.file.relative_path,

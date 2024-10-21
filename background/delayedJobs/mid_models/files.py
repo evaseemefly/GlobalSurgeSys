@@ -3,10 +3,10 @@ from abc import ABC, abstractmethod
 
 import arrow
 
-from common.enums import ForecastAreaEnum, ElementTypeEnum, FieldFileType, RasterFileType
+from common.enums import ForecastAreaEnum, ElementTypeEnum, RasterFileType
 
 
-class ForecastProductFile:
+class IForecastProductFile:
     """
         文件接口
     """
@@ -60,13 +60,38 @@ class ForecastProductFile:
         """获取发布时间"""
         pass
 
+    @property
+    def issue_dt(self) -> arrow.Arrow:
+        """
+            -> get_issue_ts -> arrow.Arrow
+        :return:
+        """
+        return arrow.get(self.get_issue_ts())
+
     @abstractmethod
     def get_forecast_ts(self) -> int:
         """获取预报时间"""
         pass
 
+    @property
+    def forecast_dt(self) -> arrow.Arrow:
+        """
+            -> get_forecast_ts -> arrow.Arrow
+        :return:
+        """
+        return arrow.get(self.get_forecast_ts())
 
-class ForecastSurgeRasterFile(ForecastProductFile):
+    @abstractmethod
+    def is_hmax_file(self) -> bool:
+        """
+            判断是否为包含hmax的nc文件
+            判断条件: forecast_ts -issue_ts >=169 -> True
+        :return:
+        """
+        pass
+
+
+class ForecastSurgeRasterFile(IForecastProductFile):
     """
         预报增水场文件
     """
@@ -99,12 +124,16 @@ class ForecastSurgeRasterFile(ForecastProductFile):
             根据存储目录获得发布时间
             path: /mnt/home/nmefc/surge/surge_glb_data/WNP/model_output/2024092312
                -> 2024092312
+            24-10-16： /mnt/home/nmefc/surge/surge_glb_data/WNP/model_output/2024101400/nc_latlon/WNP
         :return:
         """
-        path = pathlib.Path(self.relative_path)
-        last_dir_name: str = path.parent.name if path.is_file() else path.name
+        # path = pathlib.Path(self.relative_path)
+        relavtive_path_str: str = self.relative_path
+        # last_dir_name: str = path.parent.name if path.is_file() else path.name
+        # TODO:[-] 24-10-16 此处由于路径修改此处重新修改
+        ts_str: str = relavtive_path_str.rsplit('/', 3)[1:2][0]
         """eg:2024092312"""
-        ts: int = arrow.get(last_dir_name, 'YYYYMMDD-HH').int_timestamp
+        ts: int = arrow.get(ts_str, 'YYYYMMDDHH').int_timestamp
         return ts
 
     def get_forecast_ts(self) -> int:
@@ -116,5 +145,29 @@ class ForecastSurgeRasterFile(ForecastProductFile):
         """
         file_name: str = self.file_name
         # 获取时间戳
-        file_name.split('.')
-        pass
+        file_date_stamp: str = file_name.split('.')[0]
+        """文件中的包含时间的 截取 str
+            eg: field_2024-09-29_12_00_00
+        """
+        date_stamp_str: str = file_date_stamp[6:]
+        """eg: 2024-09-29_12_00_00"""
+        # 转换为预报时间 utc 时间
+        forecast_dt = arrow.get(date_stamp_str, 'YYYY-MM-DD_HH_mm_ss')
+        forecast_ts: int = forecast_dt.int_timestamp
+        return forecast_ts
+
+    def is_hmax_file(self) -> bool:
+        """
+            判断是否为包含hmax的nc文件
+            判断条件: forecast_ts -issue_ts >=169 -> True
+        :return:
+        """
+        """
+            forecast_ts - issue_ts =169 h
+        """
+        is_hmax: bool = False
+        UNIT_HOUR = 60 * 60
+        diff_hours = (self.get_forecast_ts() - self.get_issue_ts()) / UNIT_HOUR
+        if diff_hours == 169:
+            is_hmax = True
+        return is_hmax
