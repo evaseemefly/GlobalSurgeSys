@@ -32,7 +32,8 @@ DOWNLOAD_OPTIONS = {
     # 线上环境
     # 'remote_root_path': r'/home/nmefc/data_remote/71_upload2surge_wd_surge/2023:',
     # 本地下载根目录
-    'local_root_path': r'E:\05DATA\01nginx_data\nmefc_download\WD_RESULT',
+    # 'local_root_path': r'E:\05DATA\01nginx_data\nmefc_download\WD_RESULT',
+    'local_root_path': r'E:\05DATA\01nginx_data\global_surge',
 
 }
 
