@@ -1,6 +1,6 @@
-from typing import Optional, Union
+from typing import Optional, Union, List
 
-from sqlalchemy import select
+from sqlalchemy import select, desc
 
 from common.enums import RasterFileType, ForecastAreaEnum
 from config.store_config import StoreConfig
@@ -34,6 +34,64 @@ class BaseCoverageDao(BaseDao):
             model_cls.release_ts == issue_ts)
         res = session.execute(stmt).scalar_one_or_none()
         return res
+
+    def get_last_dist_issuetimes(self, raster_type: RasterFileType, area: ForecastAreaEnum, limit_count: int) -> List[
+        int]:
+        """
+            获取指定预报区域的最近几次的产品发布时间
+        @param raster_type: 栅格类型-对应数据库中的表
+        @param area:        预报区域
+        @param limit_count: 长度限制
+        @return:
+        """
+        session = self.db.session
+        switcher_dict = {
+            RasterFileType.NETCDF: GeoNCFileModel,
+            RasterFileType.GEOTIFF: GeoTifFileModel
+        }
+        model_cls = switcher_dict.get(raster_type)
+        """
+            SELECT geo_tif_files.release_ts 
+            FROM geo_tif_files 
+            WHERE geo_tif_files.area = %s GROUP BY geo_tif_files.release_ts DESC ORDER BY geo_tif_files.release_ts 
+             LIMIT %s
+        """
+        stmt = select(model_cls.release_ts).where(model_cls.area == area.value).group_by(
+            model_cls.release_ts).order_by(
+            desc(model_cls.release_ts)).limit(limit_count)
+        list_ts: List[int] = session.execute(stmt).scalars().all()
+        # = [res.release_ts for temp in res]
+        return list_ts
+
+    def get_coverage_forecast_tslist(self, raster_type: RasterFileType, area: ForecastAreaEnum, issue_ts: int) -> List[
+        int]:
+        """
+            获取指定预报区域的产品发布时间对应的预报时间戳集合
+        @param raster_type: 栅格类型-对应数据库中的tab
+        @param area:        预报区域
+        @param issue_ts:    产品发布时间戳
+        @return:
+        """
+        session = self.db.session
+        switcher_dict = {
+            RasterFileType.NETCDF: GeoNCFileModel,
+            RasterFileType.GEOTIFF: GeoTifFileModel
+        }
+        model_cls = switcher_dict.get(raster_type)
+        """
+            SELECT DISTINCT geo_tif_files.forecast_ts 
+            FROM geo_tif_files 
+            WHERE geo_tif_files.area = :area_1 AND geo_tif_files.release_ts = :release_ts_1 
+            ORDER BY geo_tif_files.forecast_ts DESC
+        """
+        stmt = select(model_cls.forecast_ts).where(model_cls.area == area.value,
+                                                   model_cls.release_ts == issue_ts).distinct(
+            model_cls.forecast_ts).order_by(
+            desc(model_cls.forecast_ts))
+        list_ts: List[int] = session.execute(stmt).scalars().all()
+        # = [res.release_ts for temp in res]
+        return list_ts
+        pass
 
 
 class CoverageNcDao(BaseCoverageDao):
