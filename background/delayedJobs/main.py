@@ -16,17 +16,17 @@ def daily_global_area_surge_forecast():
 
     :return:
     """
-    temp_test_dt: arrow.Arrow = arrow.Arrow(2024, 10, 14, 00)
+    temp_test_dt: arrow.Arrow = arrow.Arrow(2024, 11, 5, 0)
 
     issue_ts: int = temp_test_dt.int_timestamp
     """
     TODO:[*] 24-10-16  
     当前准备获取的发布时间戳
     """
-    # areas: List[ForecastAreaEnum] = [ForecastAreaEnum.WNP, ForecastAreaEnum.AMERICA, ForecastAreaEnum.OCEANIA,
-    #                                  ForecastAreaEnum.INDIA_OCEAN]
+    # areas: List[ForecastAreaEnum] = [ForecastAreaEnum.AMERICA]
 
-    areas: List[ForecastAreaEnum] = [ForecastAreaEnum.WNP, ForecastAreaEnum.INDIA_OCEAN]
+    areas: List[ForecastAreaEnum] = [ForecastAreaEnum.WNP, ForecastAreaEnum.INDIA_OCEAN, ForecastAreaEnum.AMERICA,
+                                     ForecastAreaEnum.OCEANIA, ]
     for area_temp in areas:
         surge_job_temp: IJob = GlobalSurgeJob(issue_ts, LOCAL_ROOT_PATH, area_temp, REMOTE_ROOT_PATH)
         surge_job_temp.to_do()

@@ -36,3 +36,6 @@ DEFAULT_PRO = 0.5
 
 # 默认的 arrow 时间 1970-1-1
 DEFAULT_ARROW = Arrow(1970, 1, 1)
+
+# s-> ms 的单位
+MS = 1000

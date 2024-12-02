@@ -58,3 +58,5 @@ LOG_DIR: str = LOGGING_OPTIONS.get('LOG_DIR')
 """log 存储目录"""
 LOG_FILE: str = LOGGING_OPTIONS.get('LOG_FILE')
 """log 日志文件命名规范"""
+
+CONTAINS_HMAX_COUNT = 168

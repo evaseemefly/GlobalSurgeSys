@@ -186,37 +186,45 @@ class GlobalSurgeJob(IJob):
         # TODO:[*] 24-10-07 对于最后一个文件中有含有hmax attribute 应对文件名加以区分
         for temp_file in list_source_files:
             # step2-1: 批量下载后的文件生成 store对象
-            source_file_store: SurgeNcStore = SurgeNcStore(temp_file, RasterFileType.NETCDF)
-            source_raster_type: RasterFileType = RasterFileType.NETCDF
-            is_contained_max: bool = source_file_store.is_contained_max()
-            """是否包含max属性"""
+            try:
+                source_file_store: SurgeNcStore = SurgeNcStore(temp_file, RasterFileType.NETCDF)
+                source_raster_type: RasterFileType = RasterFileType.NETCDF
+                is_contained_max: bool = source_file_store.is_contained_max()
+                """是否包含max属性"""
 
-            source_file_store.to_db(issue_ts=temp_file.get_issue_ts(), issue_dt=temp_file.issue_dt,
-                                    forecast_ts=temp_file.get_forecast_ts(), forecast_dt=temp_file.forecast_dt,
-                                    is_contained_max=temp_file.is_hmax_file())
-            # step2-2: 文件提取并转换
-            temp_transformer = GlobalSurgeTransformer(temp_file)
-            """当前 file 对应的转换器 instance"""
-            temp_transformer.read_data()
+                source_file_store.to_db(issue_ts=temp_file.get_issue_ts(), issue_dt=temp_file.issue_dt,
+                                        forecast_ts=temp_file.get_forecast_ts(), forecast_dt=temp_file.forecast_dt,
+                                        is_contained_max=False)
+                # step2-2: 文件提取并转换
+                temp_transformer = GlobalSurgeTransformer(temp_file)
+                """当前 file 对应的转换器 instance"""
+                temp_transformer.read_data()
 
-            out_put_file: Optional[IForecastProductFile] = temp_transformer.out_put()
-            output_tif_store: SurgeTifStore = SurgeTifStore(out_put_file, RasterFileType.GEOTIFF)
-            """输出的geotiff文件 instance"""
-            output_tif_store.to_db(issue_ts=out_put_file.get_issue_ts(), issue_dt=out_put_file.issue_dt,
-                                   forecast_ts=out_put_file.get_forecast_ts(), forecast_dt=out_put_file.forecast_dt,
-                                   is_contained_max=out_put_file.is_hmax_file())
+                out_put_file: Optional[IForecastProductFile] = temp_transformer.out_put()
+                output_tif_store: SurgeTifStore = SurgeTifStore(out_put_file, RasterFileType.GEOTIFF)
+                """输出的geotiff文件 instance"""
+                output_tif_store.to_db(issue_ts=out_put_file.get_issue_ts(), issue_dt=out_put_file.issue_dt,
+                                       forecast_ts=out_put_file.get_forecast_ts(), forecast_dt=out_put_file.forecast_dt,
+                                       is_contained_max=False)
 
-            # TODO:[*] 24-10-07 对于包含 max 属性的 nc需要多加一步处理max->geotiff
-
-            # step2-3:存储 tif文件 store
-            # output_raster_tif_type: RasterFileType = RasterFileType.GEOTIFF
-            # output_tif_store = SurgeTifStore(out_put_file, output_raster_tif_type)
-            # # step3: 将文件信息写入db
-            # # 将store写入db
-            # # TODO:[*] 24-10-19 AttributeError: 'RasterFileType' object has no attribute 'get_issue_ts'
-            # output_tif_store.to_db(issue_ts=output_raster_tif_type.get_issue_ts(),
-            #                        issue_dt=output_raster_tif_type.issue_dt,
-            #                        forecast_ts=output_raster_tif_type.get_forecast_ts(),
-            #                        forecast_dt=output_raster_tif_type.forecast_dt,
-            #                        is_contained_max=output_raster_tif_type.is_hmax_file())
+                # TODO:[*] 24-10-07 对于包含 max 属性的 nc需要多加一步处理max->geotiff
+                if temp_file.is_hmax_file():
+                    temp_hmax_file_transoformer = GlobalSurgeTransformer(temp_file)
+                    temp_hmax_file_transoformer.read_data('hMax')
+                    out_put_file = temp_hmax_file_transoformer.out_put()
+                    # step2-3:存储 tif文件 store
+                    output_raster_tif_type: RasterFileType = RasterFileType.GEOTIFF
+                    output_tif_store = SurgeTifStore(out_put_file, output_raster_tif_type)
+                    # step3: 将文件信息写入db
+                    # 将store写入db
+                    # TODO:[*] 24-10-19 AttributeError: 'RasterFileType' object has no attribute 'get_issue_ts'
+                    # 此处加入修改后的包含is_hmax_file 的文件名
+                    out_put_file_name: str = out_put_file.file_name
+                    output_tif_store.to_db(issue_ts=out_put_file.get_issue_ts(),
+                                           issue_dt=out_put_file.issue_dt,
+                                           forecast_ts=out_put_file.get_forecast_ts(),
+                                           forecast_dt=out_put_file.forecast_dt,
+                                           is_contained_max=True, out_put_file_name=out_put_file_name)
+            except Exception as e:
+                print(f'{e.args}')
         pass

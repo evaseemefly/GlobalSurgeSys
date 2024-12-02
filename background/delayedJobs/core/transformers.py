@@ -35,10 +35,14 @@ class GlobalSurgeTransformer:
                 # step1-1: 读取指定文件
                 data: xr.Dataset = xr.open_dataset(self.file.local_full_path)
                 # step1-2: 读取陆地掩码
-                data['h'] = data['h'].where(data['maskLand'] == 0, np.nan)
+                data[var_name] = data[var_name].where(data['maskLand'] == 0, np.nan)
+                # TODO:[-] 24-11-06 此处加入了根据阈值进行过滤的filter mask步骤
+                data_mask = (data[var_name] <= -0.3) | (data[var_name] >= 0.3)
+                # TODO:[-] 24-11-06 此部分不需要删除被掩码掉的部分，只填充nan
+                filtered_ds_h = data.where(data_mask, drop=False)
                 # data['hMax'] = data['hMax'].where(data['maskLand' == 0, np.nan])
                 # step1-3: 对于维度进行倒叙排列
-                data_standard: xr.Dataset = data.sortby('latitude', ascending=False)
+                data_standard: xr.Dataset = filtered_ds_h.sortby('latitude', ascending=False)
                 first_time = data_standard["Time"].values[0]
                 # step1-4: 设置空间坐标系与分辨率
                 first_ds = data_standard.sel(Time=first_time)[var_name]
@@ -70,6 +74,9 @@ class GlobalSurgeTransformer:
                 # 将 'field_2024-09-22_18_00_00.f0.nc' -> 'field_2024-09-22_18_00_00.f0.tif'
                 # ['field_2024-10-14_00_00_00', 'f0']
                 file_splits = self.file.file_name.split('.')[:2]
+                # TODO:[-] 24-11-07 此处加入输出文件名称若包含 hmax 则 由 'field_2024-09-22_18_00_00.f0.tif' -> 'field_2024-09-22_18_00_00.f0.hmax.tif'
+                if self.file.is_hmax_file():
+                    file_splits.append('hmax')
                 file_splits.append('tif')
                 transformer_file_name: str = '.'.join(file_splits)
                 out_put_file_path: str = str(pathlib.Path(

@@ -4,7 +4,7 @@ import arrow
 from sqlalchemy import select, distinct, update
 from sqlalchemy.orm import Session
 
-from common.default import NONE_ARGS
+from common.default import NONE_ARGS, DEFAULT_NAME
 from common.enums import RasterFileType
 from common.exceptions import CoverageStoreError
 from db.db import session_yield_scope
@@ -41,7 +41,7 @@ class CoverageStore(IStore):
         """当前的栅格类型"""
 
     def raster_2_db(self, file: IForecastProductFile, raster_type: RasterFileType, issue_dt, issue_ts, forecast_dt,
-                    forecast_ts, is_contained_max: bool, session: Session) -> None:
+                    forecast_ts, is_contained_max: bool, out_put_file_name: str, session: Session) -> None:
         """
             栅格文件信息写入db
             TODO:[*] 24-10-19 此处应修改为根据 forecast_ts + issue_ts + file.area 进行 add 或者 update
@@ -51,6 +51,8 @@ class CoverageStore(IStore):
         :param issue_ts: 发布时间戳
         :param forecast_dt: 预报时间
         :param forecast_ts: 预报时间戳
+        :@param is_contained_max: 是否包含max
+        :@param out_put_file_name: 若 is_contained_max =true时通过 out_put_file_name 获取写入文件名称
         :param session: db session
         :return:
         """
@@ -74,12 +76,14 @@ class CoverageStore(IStore):
                 model_cls.release_ts == issue_ts)
             # Multiple rows were found when one or none was required
             filter_res = session.execute(filter_stmt).scalar_one_or_none()
+            # TODO:[-] 24-11-07 加入了若 is_contained_max =true 则使用 out_put_file_name 作为写入文件名称
+            file_name: str = out_put_file_name if is_contained_max else file.file_name
             if filter_res:
                 update_stmt = (update(model_cls).where(
                     model_cls.area == file.area.value,
                     model_cls.forecast_ts == forecast_ts,
                     model_cls.release_ts == issue_ts).values(
-                    file_name=file.file_name,
+                    file_name=file_name,
                     relative_path=file.relative_path,
                     area=file.area.value,
                     product_type=file.element_type.value,
@@ -92,7 +96,7 @@ class CoverageStore(IStore):
                 ))
                 session.execute(update_stmt)
             else:
-                temp_file_model.file_name = file.file_name
+                temp_file_model.file_name = file_name
                 temp_file_model.relative_path = file.relative_path
                 temp_file_model.area = file.area.value
                 temp_file_model.product_type = file.element_type.value
@@ -126,13 +130,14 @@ class CoverageStore(IStore):
         forecast_dt = kwargs.get('forecast_dt', NONE_ARGS)
         forecast_ts = kwargs.get('forecast_ts', NONE_ARGS)
         is_contained_max: bool = kwargs.get('is_contained_max', NONE_ARGS)
+        out_put_file_name: str = kwargs.get('out_put_file_name', DEFAULT_NAME)
         """是否包含最大值"""
 
         with session_yield_scope() as session:
             try:
                 # step1: 直接将 raster file 文件信息写入 db
                 self.raster_2_db(self.file, self.raster_type, issue_dt, issue_ts, forecast_dt, forecast_ts,
-                                 is_contained_max, session)
+                                 is_contained_max, out_put_file_name, session)
                 pass
             except Exception as e:
                 raise CoverageStoreError()

@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 import arrow
 
 from common.enums import ForecastAreaEnum, ElementTypeEnum, RasterFileType
+from conf.settings import CONTAINS_HMAX_COUNT
 
 
 class IForecastProductFile:
@@ -168,6 +169,6 @@ class ForecastSurgeRasterFile(IForecastProductFile):
         is_hmax: bool = False
         UNIT_HOUR = 60 * 60
         diff_hours = (self.get_forecast_ts() - self.get_issue_ts()) / UNIT_HOUR
-        if diff_hours == 169:
+        if diff_hours == CONTAINS_HMAX_COUNT:
             is_hmax = True
         return is_hmax
