@@ -1,0 +1,24 @@
+http:
+  routers:
+    forecast-router:
+      rule: "PathPrefix(`/forecast`)" # 匹配 /forecast 路径
+      service: forecast-service       # 关联 forecast-service
+      entryPoints:
+        - web
+
+    realdata-router:
+      rule: "PathPrefix(`/station`)" # 匹配 /realdata 路径
+      service: realdata-service       # 关联 realdata-service
+      entryPoints:
+        - web
+
+  services:
+    forecast-service:
+      loadBalancer:
+        servers:
+          - url: "http://localhost:8086" # 指向 localhost:8086
+
+    realdata-service:
+      loadBalancer:
+        servers:
+          - url: "http://128.5.9.79:8086" # 指向 128.5.9.79:8086

@@ -1,0 +1,19 @@
+entryPoints:
+  web:
+    address: ":92"  # 应用服务的入口点
+  dashboard:
+    address: ":8096"  # Dashboard 入口点绑定到 8096 端口
+
+providers:
+  file:
+    filename: "/etc/traefik/dynamic.yml"  # 动态配置文件路径
+    watch: true  # 自动监听动态配置文件的变化
+
+api:
+  dashboard: true  # 启用 Dashboard
+  insecure: true   # 如果不需要安全认证，可以设置为 true（生产环境建议配置安全访问）
+
+log:
+  level: DEBUG  # 设置日志级别（DEBUG、INFO、WARN、ERROR）
+
+accessLog: {}  # 启用访问日志

@@ -1,0 +1,40 @@
+http:
+  routers:
+    dashboard-router: # 测试加入dashboard路由的配置
+        rule: "PathPrefix(`/dashboard`)"  # 匹配 /dashboard 路径
+        service: api@internal
+        entryPoints:
+          - dashboard
+    forecast-router:
+      rule: "PathPrefix(`/coverage`)"  # 匹配 /forecast 路由
+      service: forecast-service
+      entryPoints:
+        - web
+
+    station-router:
+      rule: "PathPrefix(`/station`)"  # 匹配 /station 路由
+      service: station-service
+      entryPoints:
+        - web
+
+    region-router:
+      rule: "PathPrefix(`/region`)"  # 匹配 /region 路由
+      service: region-service
+      entryPoints:
+        - web
+
+  services:
+    forecast-service:
+      loadBalancer:
+        servers:
+          - url: "http://host.docker.internal:8086"  # /forecast 映射到本地服务
+
+    station-service:
+      loadBalancer:
+        servers:
+          - url: "http://128.5.9.79:8086"  # /station 映射到远程服务
+
+    region-service:
+      loadBalancer:
+        servers:
+          - url: "http://128.5.9.79:8086"  # /region 映射到远程服务

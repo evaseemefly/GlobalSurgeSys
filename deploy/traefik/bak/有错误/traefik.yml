@@ -1,0 +1,17 @@
+entryPoints:
+  web:
+    address: ":92" # Traefik 监听的端口
+  
+  websecure:
+    address: ":443" # 可选，用于 HTTPS
+
+  dashboard:
+    address: ":8095" # Dashboard 的监听端口
+
+providers:
+  file:
+    filename: "/etc/traefik/dynamic.yml" # 引用动态配置文件
+
+api:
+  dashboard: true # 启用 Traefik Dashboard
+  insecure: true  # 允许未加密的访问（仅测试环境使用，生产环境请关闭）

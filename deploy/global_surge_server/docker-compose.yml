@@ -1,0 +1,18 @@
+version: "2.1"
+
+services:
+  
+  fastapi-server:
+    build:
+      context: .
+      dockerfile: ./dockerfiles/fastapi_server_file
+    image: py37:1.9
+    container_name: fastapi_sever
+    working_dir: /code
+    volumes:
+      # - ./opt/project:/opt/project # 处理生成的group等文件
+      - /home/nmefc/logs/global_surge_server:/log # 日志
+      - /home/nmefc/proj/global_surge_server/server:/code
+    ports:
+      - "8086:8086"
+    tty: true # 第一次上线测试时加入，去掉上面的 command，手动进入容器后方便查看问题

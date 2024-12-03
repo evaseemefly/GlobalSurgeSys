@@ -1,0 +1,17 @@
+version: "3.9"
+services:
+  traefik:
+    image: traefik:v2.10
+    command:
+      - "--providers.file.filename=/etc/traefik/dynamic.yml" # 加载动态配置文件
+      - "--entrypoints.web.address=:92"                     # 定义入口点
+      - "--entrypoints.dashboard.address=:8095"            # 定义 Dashboard 入口点
+      - "--api.insecure=true"                               # 启用 Dashboard（仅测试环境）
+      - "--api.dashboard=true"                             # 启用 Dashboard
+    ports:
+      - "92:92"                                             # 映射 92 端口
+      - "8095:8095"                                            # 映射 Dashboard 端口
+    volumes:
+      - "./traefik.yml:/etc/traefik/traefik.yml"            # 挂载静态配置文件
+      - "./dynamic.yml:/etc/traefik/dynamic.yml"            # 挂载动态配置文件
+      - "/var/run/docker.sock:/var/run/docker.sock"         # 挂载 Docker Socket（可选）
