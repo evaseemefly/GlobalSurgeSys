@@ -130,6 +130,9 @@ class CoverageNcDao(BaseCoverageDao):
         url: str = f'{host}/{StoreConfig.get_store_relative_path()}/{relative_path}/{file_name}'
         return url
 
+    def get_position_vals(self, area: ForecastAreaEnum, issue_ts: int, lat: float, lon: float):
+        self.get_url(area)
+
 
 class CoverageTifDao(BaseCoverageDao):
     def get_url(self, area: ForecastAreaEnum, forecast_ts: int, issue_ts: int, ) -> str:
