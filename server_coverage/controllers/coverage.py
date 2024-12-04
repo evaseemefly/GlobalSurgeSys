@@ -96,7 +96,7 @@ def get_coverage_forecast_tslist(area: int, issue_ts: int) -> List[int]:
     return list_forecast_ts
 
 
-@app.get('/position/forecast/surge/list', response_model=List[SurgeRealDataSchema],
+@app.get('/position/forecast/surge/list', response_model=List[dict],
          response_model_include=['station_code', 'forecast_dt', 'forecast_ts', 'issue_dt', 'issue_ts', 'surge'],
          summary="获取站点的潮位集合(规定起止范围)")
 def get_station_forecast_surgelist(station_code: str, lat: float, lon: float, issue_ts: int, start_ts: int,

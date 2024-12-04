@@ -1,7 +1,7 @@
 import pathlib
 from abc import ABC, abstractmethod, abstractproperty
 from typing import List, Optional
-
+import xarray as xr
 import arrow
 
 from common.dicts import dict_area
@@ -173,6 +173,9 @@ class GlobalSurgeJob(IJob):
         """批量下载后的原始文件"""
         # 批量写入db
         self.batch_store(list_source_files)
+
+        # TODO:[*] 24-12-04 加入了 nc -> merge.nc 的操作
+        self.coverage_merge(list_source_files)
         self.ftp_client.disconnect()
         pass
 
@@ -180,6 +183,7 @@ class GlobalSurgeJob(IJob):
         """
             将下载的文件批量处理并写入db
             TODO:[*] 24-10-10 此处应修改为先查询，若已经存在则更新，若不存在则批量写入
+            TODO:[*] 24-12-03 此部分加入对于逐时nc的拼接流程
         :return:
         """
         # step2: 下载文件标准化并转存为tiff: standard -> transform
@@ -228,3 +232,70 @@ class GlobalSurgeJob(IJob):
             except Exception as e:
                 print(f'{e.args}')
         pass
+
+    def coverage_merge(self, list_source_files: List[IForecastProductFile]) -> None:
+        # 创建一个空列表，用于存储每个文件的 Dataset
+        datasets = []
+
+        prior_file: Optional[IForecastProductFile] = None
+        """发布时间最靠前的file"""
+
+        # 遍历文件列表，读取每个文件的数据
+        for file in list_source_files:
+            # 若初始文件未被赋值，则指定初始文件
+            if prior_file is None:
+                prior_file = file
+            if prior_file is not None and file.get_issue_ts() < prior_file.get_issue_ts():
+                prior_file = file
+
+            file_fullpath: str = file.local_full_path
+            # 打开 NetCDF 文件
+            ds = xr.open_dataset(file_fullpath)
+
+            # 检查文件中是否包含 h 和 Time
+            if "h" in ds.variables and "Time" in ds.dims:
+                datasets.append(ds)
+            else:
+                print(f"文件 {file_fullpath} 中缺少 'h' 变量或 'Time' 维度，跳过处理。")
+
+        # 拼接所有数据集
+        if datasets:
+            # 使用 xarray.concat 按 Time 维度拼接
+            combined_ds = xr.concat(datasets, dim="Time")
+
+            # 打印拼接后的时间数组
+            print("Time 维度的数组：")
+            print(combined_ds["Time"].values)
+
+            """
+                field_2024-11-05_00_00_00.f0.nc
+                -> 
+                field_2024-11-05_00_00_00_merge.nc
+            """
+            temp_file_name: str = f'{prior_file.file_name.split(".")[0]}.merge.nc'
+
+            temp_remote_path: str = self.get_remote_path()
+            """远端存储目录"""
+            temp_local_path: str = self.get_local_path()
+            """本地存储目录"""
+            temp_relative_path: str = self.get_relative_path()
+            """存储的相对路径"""
+            temp_local_full_path: str = str(pathlib.Path(self.get_local_path()) / temp_file_name)
+
+            # 保存拼接后的数据到新的 NetCDF 文件
+            combined_ds.to_netcdf(temp_local_full_path)
+            # TODO:[*] 24-12-04 获取发布时间的合并文件名
+
+            file_merged: IForecastProductFile = ForecastSurgeRasterFile(self.area, ElementTypeEnum.SURGE_MERGE,
+                                                                        RasterFileType.NETCDF, temp_file_name,
+                                                                        temp_relative_path,
+                                                                        self.local_root_path)
+
+            source_file_store: SurgeNcStore = SurgeNcStore(file_merged, RasterFileType.NETCDF)
+            source_file_store.to_db(issue_ts=file_merged.get_issue_ts(), issue_dt=file_merged.issue_dt,
+                                    forecast_ts=file_merged.get_forecast_ts(), forecast_dt=file_merged.forecast_dt,
+                                    is_contained_max=False)
+            # TODO:[*] 24-12-04 print改为 logger
+            print("拼接完成，结果保存为 combined_h.nc")
+        else:
+            print("未找到可用的数据，未进行拼接。")
