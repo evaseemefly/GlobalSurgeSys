@@ -207,6 +207,8 @@ class GlobalSurgeJob(IJob):
                 out_put_file: Optional[IForecastProductFile] = temp_transformer.out_put()
                 output_tif_store: SurgeTifStore = SurgeTifStore(out_put_file, RasterFileType.GEOTIFF)
                 """输出的geotiff文件 instance"""
+
+                # TODO:[-] 24-12-13 此处修复了包含hmax未能写入db的bug
                 output_tif_store.to_db(issue_ts=out_put_file.get_issue_ts(), issue_dt=out_put_file.issue_dt,
                                        forecast_ts=out_put_file.get_forecast_ts(), forecast_dt=out_put_file.forecast_dt,
                                        is_contained_max=False)

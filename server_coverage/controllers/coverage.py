@@ -1,13 +1,14 @@
 from typing import List, Type, Any, Optional, Union
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Request
+from geojson import Point
 
 from common.default import MS
 from common.enums import RasterFileType, ForecastAreaEnum
 from dao.coverage import CoverageNcDao, CoverageTifDao
 from models.coverages import GeoTifFileModel, GeoNCFileModel
-from schema.coverage import CoverageFileInfoSchema
-from util.utils import timestamp_sec2ms
+from schema.coverage import CoverageFileInfoSchema, CoverageVectorSchema
+from util.utils import timestamp_sec2ms, normalize_coord
 
 app = APIRouter()
 
@@ -96,12 +97,28 @@ def get_coverage_forecast_tslist(area: int, issue_ts: int) -> List[int]:
     return list_forecast_ts
 
 
-@app.get('/position/forecast/surge/list', response_model=List[dict],
-         response_model_include=['station_code', 'forecast_dt', 'forecast_ts', 'issue_dt', 'issue_ts', 'surge'],
+@app.get('/position/forecast/surge/list', response_model=CoverageVectorSchema,
          summary="获取站点的潮位集合(规定起止范围)")
-def get_station_forecast_surgelist(station_code: str, lat: float, lon: float, issue_ts: int, start_ts: int,
-                                   end_ts: int):
-    pass
+def get_station_forecast_surgelist(lat: float, lon: float, issue_ts: int, start_ts: int, end_ts: int):
+    coverage_info = None
+    issue_ts: int = issue_ts / MS
+    area = ForecastAreaEnum.WNP
+    raster_type = RasterFileType.GEOTIFF
+
+    """
+        TODO:[-] 24-12-20
+         对输入经纬度加入标准化处理
+         lon < 0 -> 360+lon
+    """
+    standard_lat, standard_lng = normalize_coord(lat, lon)
+
+    forecast_options: Optional[CoverageVectorSchema] = CoverageNcDao().get_position_vals(standard_lat, standard_lng,
+                                                                                         issue_ts,
+                                                                                         start_ts,
+                                                                                         end_ts)
+    # TODO:[-] 24-11-04 s -> ms
+
+    return forecast_options
 
 
 def get_raster_type_from_int(val: int) -> RasterFileType:
