@@ -48,13 +48,14 @@ def to_do_astronomictide():
         自动录入天文潮-2024
     @return:
     """
-    dir_path: str = r'D:\01Proj\GlobalSurgeSys\background\byjupyter\data\2024\to_read'
-    start_dt_ar: arrow.Arrow = arrow.get(2024, 1, 1, 0, 0)
+    dir_path: str = r'E:\05DATA\04surge\全球天文潮\2025\EXT'
+    start_dt_ar: arrow.Arrow = arrow.get(2025, 1, 1, 0, 0)
     list_pathes: List[pathlib.Path] = read_path_files_list(dir_path)
     for temp_path in list_pathes:
         # 从文件名中截取 station_code
         # eg: 1epme2_2023
         # 98caph_2023 | 94mona2_2023 | 101jrmi_2023
+        # TODO:[-] 25-02-17 修改为: AT1epme2_2024_202526
         # 截取 98caph 用正则匹配 字母到结尾
         # 129wpwa
         # 128asto2_2021_2024
@@ -62,7 +63,10 @@ def to_do_astronomictide():
         # eg: 13cbmd2_2021_2024 -> 13cbmd2 -> cbmd2
         # 匹配第一个英文字母开始至结束
         # [a-zA-Z]{4}*$
+        # AT1epme2
         temp_name_stamp: str = temp_path.name.split('_')[0]
+        # TODO:[-] 25-02-17 [0,1]为区域标识，需要去掉
+        temp_name_stamp: str = temp_name_stamp[2:]
         # 截取 station code
         re_str: str = '[A-Za-z]+[0-9]*$'
         re_code = re.findall(re_str, temp_name_stamp)
@@ -74,7 +78,7 @@ def to_do_astronomictide():
         list_astronomic = read_all_astronomictide_2db(str(temp_path), temp_station_code, start_dt_ar)
         is_ok = astronomictide_2db(list_astronomic, temp_station_code)
         if is_ok:
-            # print(f'[-] 写入{temp_name_stamp}成功~')
+            print(f'[-] 写入{temp_name_stamp}成功~')
             pass
         else:
             print(f'[*] 写入{temp_name_stamp}失败!')

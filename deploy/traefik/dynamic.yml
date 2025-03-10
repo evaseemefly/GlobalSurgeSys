@@ -32,9 +32,9 @@ http:
     station-service:
       loadBalancer:
         servers:
-          - url: "http://128.5.9.79:8086"  # /station 映射到远程服务
+          - url: "http://172.16.30.156:8086"  # /station 映射到远程服务
 
     region-service:
       loadBalancer:
         servers:
-          - url: "http://128.5.9.79:8086"  # /region 映射到远程服务
+          - url: "http://172.16.30.156:8086"  # /region 映射到远程服务
