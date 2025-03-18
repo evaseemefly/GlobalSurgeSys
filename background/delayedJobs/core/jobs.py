@@ -6,6 +6,7 @@ import arrow
 
 from common.dicts import dict_area
 from common.enums import ForecastAreaEnum, ElementTypeEnum, RasterFileType
+from common.logger import log_error, log_warning, log_info
 from conf._privacy import FTP_LIST
 from core.stores import CoverageStore, SurgeNcStore, SurgeTifStore
 from core.transformers import GlobalSurgeTransformer
@@ -156,6 +157,7 @@ class GlobalSurgeJob(IJob):
                 list_file.append(temp_file)
             except Exception as e:
                 # TODO:[*] 24-09-25 此处加入logger
+                log_error(f'下载{temp_name}时出错!|msg:{e.args}')
                 pass
 
         return list_file
@@ -232,7 +234,8 @@ class GlobalSurgeJob(IJob):
                                            forecast_dt=out_put_file.forecast_dt,
                                            is_contained_max=True, out_put_file_name=out_put_file_name)
             except Exception as e:
-                print(f'{e.args}')
+                # print(f'{e.args}')
+                log_error(f'存储:{temp_file.file_name}时出错!|MSG:{e.args}')
         pass
 
     def coverage_merge(self, list_source_files: List[IForecastProductFile]) -> None:
@@ -258,7 +261,7 @@ class GlobalSurgeJob(IJob):
             if "h" in ds.variables and "Time" in ds.dims:
                 datasets.append(ds)
             else:
-                print(f"文件 {file_fullpath} 中缺少 'h' 变量或 'Time' 维度，跳过处理。")
+                log_warning(f"文件 {file_fullpath} 中缺少 'h' 变量或 'Time' 维度，跳过处理。")
 
         # 拼接所有数据集
         if datasets:
@@ -266,8 +269,9 @@ class GlobalSurgeJob(IJob):
             combined_ds = xr.concat(datasets, dim="Time")
 
             # 打印拼接后的时间数组
-            print("Time 维度的数组：")
-            print(combined_ds["Time"].values)
+            # print("Time 维度的数组：")
+            # print(combined_ds["Time"].values)
+            log_info(f'当前进行merge合并的dataframe Time维度为:{len(combined_ds["Time"].values)}')
 
             """
                 field_2024-11-05_00_00_00.f0.nc
@@ -298,6 +302,8 @@ class GlobalSurgeJob(IJob):
                                     forecast_ts=file_merged.get_forecast_ts(), forecast_dt=file_merged.forecast_dt,
                                     is_contained_max=False)
             # TODO:[*] 24-12-04 print改为 logger
-            print("拼接完成，结果保存为 combined_h.nc")
+            # print("拼接完成，结果保存为 combined_h.nc")
+            log_info("拼接完成，结果保存为 combined_h.nc")
         else:
-            print("未找到可用的数据，未进行拼接。")
+            # print("未找到可用的数据，未进行拼接。")
+            log_warning("拼接完成，结果保存为 combined_h.nc")

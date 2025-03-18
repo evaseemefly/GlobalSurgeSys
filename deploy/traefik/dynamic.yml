@@ -27,7 +27,7 @@ http:
     forecast-service:
       loadBalancer:
         servers:
-          - url: "http://host.docker.internal:8086"  # /forecast 映射到本地服务
+          - url: "http://192.168.0.110:8086"  # /forecast 映射到本地服务(25-03-12 5730)
 
     station-service:
       loadBalancer:

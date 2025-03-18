@@ -2,7 +2,7 @@ entryPoints:
   web:
     address: ":92"  # 应用服务的入口点
   dashboard:
-    address: ":8096"  # Dashboard 入口点绑定到 8096 端口
+    address: ":8095"  # Dashboard 入口点绑定到 8096 端口
 
 providers:
   file:

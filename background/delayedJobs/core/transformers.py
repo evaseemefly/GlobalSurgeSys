@@ -52,6 +52,7 @@ class GlobalSurgeTransformer:
                 self._ds = first_ds
             except Exception as e:
                 # TODO:[*] 24-09-25 需加入logger
+                # TODO:[*] 25-03-18 (-101, 'NetCDF: HDF error')
                 raise FileReadError
             pass
         else:

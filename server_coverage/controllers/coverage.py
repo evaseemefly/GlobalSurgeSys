@@ -97,7 +97,7 @@ def get_coverage_forecast_tslist(area: int, issue_ts: int) -> List[int]:
     return list_forecast_ts
 
 
-@app.get('/position/forecast/surge/list', response_model=CoverageVectorSchema,
+@app.get('/position/forecast/surge/list', response_model=Optional[CoverageVectorSchema],
          summary="获取站点的潮位集合(规定起止范围)")
 def get_station_forecast_surgelist(lat: float, lon: float, issue_ts: int, start_ts: int, end_ts: int):
     coverage_info = None

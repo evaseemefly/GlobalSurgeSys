@@ -10,6 +10,8 @@ import pathlib
 
 from loguru import logger
 
+from common.logger import log_info, log_exception, log_error
+
 
 class FtpClient:
     """
@@ -169,7 +171,7 @@ class SFTPClient:
                 port=self.port,
                 cnopts=self.my_cnopts
             )
-            print("Connection successfully established.")
+            log_info("Connection successfully established.")
         except Exception as e:
             # TODO:[*] 24-10-16 无法连接
             # ERROR: Failed to connect: No hostkey for host 128.5.6.16 found.
@@ -177,12 +179,12 @@ class SFTPClient:
                     raise SSHException("No hostkey for host %s found." % host)
                     paramiko.ssh_exception.SSHException: No hostkey for host 128.5.6.16 found.
             """
-            print(f"Failed to connect: {e}")
+            log_error(f"Failed to connect: {e}")
 
     def disconnect(self):
         if self.connection:
             self.connection.close()
-            print("Connection closed.")
+            log_info("Connection closed.")
 
     def download_file(self, local_path: str, remote_path: str, file_name: str):
         remote_full_path: str = str(pathlib.PurePosixPath(remote_path) / file_name)
@@ -195,10 +197,12 @@ class SFTPClient:
             # '/mnt/home/nmefc/surge/surge_glb_data/WNP/model_output/2024101400/nc_latlon/WNP/
             # field_2024-10-14_00_00_00.f0.nc/field_2024-10-14_00_00_00.f0.nc'
             self.connection.get(remote_full_path, local_full_path)
-            print(f"Downloaded: {remote_full_path} to {local_full_path}")
+            # print(f"Downloaded: {remote_full_path} to {local_full_path}")
+            log_info(
+                f"Downloaded: {remote_full_path} to {local_full_path}")
         except Exception as e:
             # Failed to download file: [Errno 2] No such file or directory: 'E:\\05DATA\\01nginx_data\\nmefc_download\\WD_RESULT\\WNP\\model_output\\2024101400\\nc_latlon\\WNP\\field_2024-10-14_00_00_00.f0.nc'
-            print(f"Failed to download file: {e}")
+            log_error(f"Failed to download file: {e}")
             pass
 
     def download_files_in_cwd(self, local_dir: str, remote_path: str):

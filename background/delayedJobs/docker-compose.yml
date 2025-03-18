@@ -1,0 +1,19 @@
+version: "3"
+
+services:
+  global_surge_forecast_job:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    image: py37:1.24
+    container_name: global-surge-forecast
+    working_dir: /opt/project
+    privileged: true
+    command:
+      - /bin/bash
+    tty: true
+    volumes:
+      - /home/surge/pro/global_surge_forecast_job:/opt/project
+      - /home/surge/DATA_LOCAL/GLOBAL_FORECAST:/data/local
+
+

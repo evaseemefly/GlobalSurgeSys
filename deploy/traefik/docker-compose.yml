@@ -7,7 +7,7 @@ services:
     restart: always
     ports:
       - "92:92"          # 将 Traefik 的 web 入口映射到宿主机的 92 端口
-      - "8096:8096"      # 将 Traefik Dashboard 入口映射到宿主机的 8096 端口
+      - "8095:8095"      # 将 Traefik Dashboard 入口映射到宿主机的 8096 端口
     volumes:
       - ./traefik.yml:/etc/traefik/traefik.yml  # 挂载静态配置文件
       - ./dynamic.yml:/etc/traefik/dynamic.yml  # 挂载动态配置文件

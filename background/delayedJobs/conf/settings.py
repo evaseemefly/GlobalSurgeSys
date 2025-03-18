@@ -11,7 +11,8 @@ DATABASES = {
         'USER': 'root',  # 账号
         'PASSWORD': db_pwd,
         # 'HOST': 'localhost',  # HOST
-        'HOST': '128.5.9.79',  # HOST
+        'HOST': '172.16.30.156',  # HOST
+        # 'HOST': '128.5.9.79',  # HOST
         # 'HOST': '192.168.0.115',  # nw-测试地址
         # 'HOST': '172.17.0.1',  # 9.79 docker 内部访问 mysql 地址
         # 'HOST': 'host.docker.internal',  # docker 宿主机
@@ -33,7 +34,8 @@ DOWNLOAD_OPTIONS = {
     # 'remote_root_path': r'/home/nmefc/data_remote/71_upload2surge_wd_surge/2023:',
     # 本地下载根目录
     # 'local_root_path': r'E:\05DATA\01nginx_data\nmefc_download\WD_RESULT',
-    'local_root_path': r'E:\05DATA\01nginx_data\global_surge',
+    # 'local_root_path': r'E:\05DATA\01nginx_data\global_surge',
+    'local_root_path': r'/data/local',
 
 }
 

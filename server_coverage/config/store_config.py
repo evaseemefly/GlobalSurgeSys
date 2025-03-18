@@ -1,4 +1,3 @@
-import consul
 
 STORE_OPTIONS = {
     'NWP': {
