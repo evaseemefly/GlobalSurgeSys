@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod, abstractproperty
 from typing import List, Optional
 import xarray as xr
 import arrow
+from memory_profiler import profile
 
 from common.dicts import dict_area
 from common.enums import ForecastAreaEnum, ElementTypeEnum, RasterFileType
@@ -162,6 +163,7 @@ class GlobalSurgeJob(IJob):
 
         return list_file
 
+    @profile
     def to_do(self) -> None:
         """
             执行 下载 -> 读取转存 -> 写入db操作

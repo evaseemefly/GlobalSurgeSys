@@ -9,13 +9,12 @@ import pandas as pd
 
 from common.default import MS
 from common.enums import RasterFileType, ForecastAreaEnum, ElementTypeEnum
-from config.store_config import StoreConfig
+from config.store_config import StoreConfig, STORE_ROOT_PATH
 from dao.base import BaseDao
 from models.coverages import GeoNCFileModel, GeoTifFileModel
 from schema.coverage import CoverageVectorSchema
 from util.utils import get_position_forecastarea
 
-STORE_ROOT_PATH: str = r'E:\05DATA\01nginx_data\global_surge'
 STORE_RELATIVE_PATH: str = ''
 
 

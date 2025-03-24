@@ -27,7 +27,7 @@ http:
     forecast-service:
       loadBalancer:
         servers:
-          - url: "http://192.168.0.110:8086"  # /forecast 映射到本地服务(25-03-12 5730)
+          - url: "http://192.168.0.109:8086"  # /forecast 映射到本地服务(25-03-12 5730)
 
     station-service:
       loadBalancer:

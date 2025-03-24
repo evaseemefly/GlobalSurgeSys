@@ -3,7 +3,9 @@ from typing import List
 
 import arrow
 from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.util import utc
+from memory_profiler import profile
 
 from common import logger
 from common.enums import ForecastAreaEnum
@@ -63,10 +65,15 @@ def get_nearly_forecast_time(now_utc: arrow.Arrow) -> arrow.Arrow:
     return forecast_time
 
 
+@profile
 def daily_global_area_surge_forecast():
     """
         每日根据全部区域获取全球区域潮位预报产品定时任务
         TODO:[-] 25-03-13 每次计划任务时根据当前时间获取对应的预报产品时间
+        TODO:[*] 25-03-20: ERROR 出现内存溢出的bug
+        [121356.831761] Out of memory: Killed process 18884 (python)
+         total-vm:20012072kB, anon-rss:15336104kB, file-rss:0kB,
+         shmem-rss:0kB, UID:0 pgtables:33888kB oom_score_adj:0
     :return:
     """
     # ubuntu18.04 是 utc 时间
@@ -98,17 +105,72 @@ def daily_global_area_surge_forecast():
                 f'当前时间:{temp_utc_now_str}|出现异常!|msg:{e.args}')
 
 
-if __name__ == '__main__':
+@profile
+def test_job():
+    log_info('执行耗时任务')
+    a = [i for i in range(1000)]  # 占用大量内存
+    time.sleep(1)  # 模拟耗时操作
+    del a  # 释放内存
+    time.sleep(1)
+    log_info('结束耗时任务')
+
+
+def test_delay_jobs():
+    """
+        根据时间测试任务执行情况
+    @return:
+    """
+    # 定义起始时间和结束时间
+    start = "2025-03-24T00:00:00"
+    end = "2025-03-26T12:00:00"
+    # 将字符串转换为 Arrow 对象
+    start_time = arrow.get(start)
+    end_time = arrow.get(end)
+
+    # 生成时间数组，步长为 1 小时
+    time_array = []
+    current_time = start_time
+    while current_time <= end_time:
+        time_array.append(current_time)
+        current_time = current_time.shift(hours=1)
+    for temp_dt in time_array:
+        temp_nearly_time = get_nearly_forecast_time(temp_dt)
+        current_time_str: str = temp_dt.format("YYYY-MM-DD HH: mm:ss ZZ)")
+        temp_nearly_time_str: str = temp_nearly_time.format("YYYY-MM-DD HH:mm:ss ZZ")
+        msg = f'输入时间为:{current_time_str}, 对应临近时间为: {temp_nearly_time_str}'
+        log_info(msg)
+
+
+def main():
+    # 尝试改为 blockingscheduler
+    # scheduler = BlockingScheduler(timezone=utc)
     scheduler = BackgroundScheduler(timezone=utc)
     # 每日两次执行计划任务
     # locatime 19:00 utc 11:00
     # locatime 6:30  utc 22:30
+    # TODO:[-] 25-03-24 修改为2次主动执行+2次补算
     scheduler.add_job(daily_global_area_surge_forecast, 'cron', hour=11, minute=0)
+    scheduler.add_job(daily_global_area_surge_forecast, 'cron', hour=12, minute=0)
     scheduler.add_job(daily_global_area_surge_forecast, 'cron', hour=22, minute=30)
+    scheduler.add_job(daily_global_area_surge_forecast, 'cron', hour=23, minute=30)
+    # 每小时定时执行
+    # scheduler.add_job(daily_global_area_surge_forecast, 'cron', minute=22)
+    # scheduler.add_job(test_job, 'cron', minute=20)
     scheduler.start()
     # TODO:[-] 25-03-13 TEST: 根据当前时间执行下载操作
     # daily_global_area_surge_forecast()
+    # TODO:[-] 25-03-24 TEST: 测试计划任务获取对应时间是否正确
+    # test_delay_jobs()
     pass
-    while True:
-        # print(time.time())
-        time.sleep(5)
+    # TODO:[-] 25-03-19 加入了异常退出结束scheduler
+    try:
+        while True:
+            # print(time.time())
+            time.sleep(5)
+    except (KeyboardInterrupt, SystemExit):
+        scheduler.shutdown()
+
+
+if __name__ == '__main__':
+    log_info('启动scheduler')
+    main()

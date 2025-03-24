@@ -5,17 +5,15 @@ services:
     build:
       context: .
       dockerfile: ./Dockerfile
-    image: py37:1.26
-    container_name: global-surge-forecast
+    image: py37:1.27
+    container_name: global-surge-forecast-coverageserver
     working_dir: /opt/project
-    ports:
-      - "8086:8086"  #
     privileged: true
     command:
       - /bin/bash
     tty: true
     volumes:
-      - /home/surge/pro/global_surge_forecast_job:/opt/project
+      - /home/surge/pro/global_surge_forecast_coverageserver:/opt/project
       - /home/surge/DATA_LOCAL/GLOBAL_FORECAST:/data/local
 
 

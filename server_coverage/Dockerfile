@@ -1,4 +1,4 @@
-FROM py37:1.26
+FROM py37:1.27
 
 ENV PYTHONUNBUFFERED 1
 
@@ -9,4 +9,4 @@ ENV PYTHONUNBUFFERED 1
 WORKDIR /opt/project
 
 # 3- 将本地目录下的文件全部拷贝至容器 /opt/project 中
-COPY /home/surge/pro/global_surge_forecast_job /opt/project
+COPY /home/surge/pro/global_surge_forecast_coverageserver /opt/project

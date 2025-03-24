@@ -1,0 +1,14 @@
+version: '3.3'
+
+services:
+  nginx:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+      - "82:82"
+    volumes:
+      # TODO:[-] 25-03-19 注意此处的nginx配置文件路径，不要弄错!
+      - /home/surge/docker_data/nginx/conf:/etc/nginx/conf.d  
+      - /home/surge/DATA_LOCAL:/home
