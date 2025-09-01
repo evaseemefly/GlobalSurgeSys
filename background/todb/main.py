@@ -151,10 +151,20 @@ def read_path_files_list(dir_path: str) -> List[pathlib.Path]:
         # print(temp_pathlib)
     return list_pathes
 
+def spider_gts_data():
+    """
+        step1: 根据当前时间
+    @return:
+    """
+    pass
 
 def main():
     # to_db()
-    to_do_astronomictide()
+    # 批量处理天文潮数据
+    # to_do_astronomictide()
+    # 定时处理gts潮位数据
+    spider_gts_data()
+
 
 
 # 按间距中的绿色按钮以运行脚本。

@@ -3,7 +3,7 @@ from sqlalchemy.dialects.mysql import DATETIME, INTEGER, TINYINT, VARCHAR
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import ForeignKey, Sequence, MetaData, Table
 from sqlalchemy.sql import func
-from sqlalchemy.orm import relationship, sessionmaker
+from sqlalchemy.orm import relationship, sessionmaker, Mapped, mapped_column
 from datetime import datetime
 
 from core.db import DbFactory
@@ -23,7 +23,7 @@ metadata = BaseMeta.metadata
 
 class IIdModel(BaseMeta):
     __abstract__ = True
-    id = Column(Integer, primary_key=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
 
 
 class IDel(BaseMeta):
@@ -31,7 +31,7 @@ class IDel(BaseMeta):
         软删除 抽象父类
     """
     __abstract__ = True
-    is_del = Column(TINYINT(1), nullable=False, server_default=text("'0'"), default=0)
+    is_del: Mapped[int] = mapped_column(nullable=False, default=0)
 
 
 class IModel(BaseMeta):
@@ -39,8 +39,14 @@ class IModel(BaseMeta):
         model 抽象父类，主要包含 创建及修改时间
     """
     __abstract__ = True
-    gmt_create_time = Column(DATETIME(fsp=6), default=datetime.utcnow)
-    gmt_modify_time = Column(DATETIME(fsp=6), default=datetime.utcnow)
+    gmt_create_time: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+    gmt_modify_time: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+
+
+class IRealDataDt(BaseMeta):
+    __abstract__ = True
+    gmt_realtime: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+    ts: Mapped[int] = mapped_column(default=0)
 
 
 class StationRealDataIndex(IIdModel, IDel, IModel):
@@ -55,18 +61,15 @@ class StationRealDataIndex(IIdModel, IDel, IModel):
     __tablename__ = 'station_realdata_index'
 
 
-class StationRealDataSpecific(IIdModel, IDel, IModel):
+class StationRealDataSpecific(IIdModel, IDel, IModel, IRealDataDt):
     """
         海洋站实况表 , 按照 yymm 进行分表
     """
     # 海洋站代码
-    station_code = Column(VARCHAR(10), default=DEFAULT_CODE)
-    # 当前时间
-    gmt_dt = Column(DATETIME(fsp=6), default=datetime.utcnow)
-    timestamp = Column(Integer, nullable=False, default=0)
-    surge = Column(Float, nullable=False, default=DEFAULT_SURGE)
+    station_code: Mapped[str] = mapped_column(default=DEFAULT_CODE)
+    surge: Mapped[float] = mapped_column(default=DEFAULT_SURGE)
     # 所属的 SpiderTaskInfo id
-    tid = Column(Integer, nullable=False, default=0)
+    tid: Mapped[int] = mapped_column(default=0)
     __tablename__ = 'station_realdata_specific'
 
 
