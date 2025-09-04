@@ -105,6 +105,9 @@ class StationStatus(IIdModel, IDel, IModel):
     status = Column(INTEGER(4), default=DEFAULT_COUNTRY_INDEX)
     # 所属的 SpiderTaskInfo id
     tid = Column(Integer, nullable=False, default=0)
+
+    gmt_realtime: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+
     __tablename__ = 'station_status'
 
 

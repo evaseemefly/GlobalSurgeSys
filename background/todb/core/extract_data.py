@@ -10,6 +10,7 @@ from typing import List
 
 import arrow
 import pandas as pd
+from apscheduler.schedulers.blocking import BlockingScheduler
 
 from conf.settings import TASK_OPTIONS
 from core.data import SpiderTask, GTSSurgeRealData
@@ -204,7 +205,7 @@ def get_latest_sea_level_data(root_dir: Path, now_utc: arrow.Arrow) -> List[GTSE
         return None
 
 
-if __name__ == "__main__":
+def run_timer_process_gtsdata():
     dir_path_str: str = r'/Volumes/upload2surge/Decoded_Data'
     dir_path: pathlib.Path = pathlib.Path(dir_path_str)
     out_put: pathlib.Path = pathlib.Path(r'/Users/evaseemefly/03data/02station') / 'all_station_225.json'
@@ -220,7 +221,7 @@ if __name__ == "__main__":
                  {'timestamp_utc': '2025-08-26T01:45:00', 'sea_level_meters': 5222.724}, 
                  {'timestamp_utc': '2025-08-26T02:00:00', 'sea_level_meters': 5222.727}, 
                  {'timestamp_utc': '2025-08-26T02:15:00', 'sea_level_meters': 5222.72}, 
-    
+
     """
     # step1: 定时批量获取最新的gts数据
     # TODO:[-] 25-08-27 此处由 dict -> json 修改为=> -> schema
@@ -237,9 +238,10 @@ if __name__ == "__main__":
         task_name_prefix: str = TASK_OPTIONS.get('name_prefix')
         task_name: str = f'{task_name_prefix}{date_utc_ymdhm}'
         # step2-1 写入 task
-        tid: int = -1
-        # task_info = SpiderTask(now_utc, len(all_stations_latest_data), task_name)
-        # tid = task_info.to_db()
+        # tid: int = -1
+        # TODO:[*] 25-09-02 此处加入写入 task 列表的流程
+        task_info = SpiderTask(now_utc, len(all_stations_latest_data), task_name)
+        tid = task_info.to_db()
         # step2-2 写入 realdata
         stationSurge = GTSSurgeRealData(temp_station, tid)
         # step1: 创建分表
@@ -248,13 +250,37 @@ if __name__ == "__main__":
         stationSurge.insert_realdata_list(to_coverage=True, realdata_list=temp_realdata)
         pass
 
-    if all_stations_latest_data:
-        try:
-            with open(str(out_put), 'w', encoding='utf-8') as f:
-                # 使用 json.dump 将数据写入文件
-                # indent=4 使文件格式化，易于阅读
-                # ensure_ascii=False 确保中文字符或特殊符号直接写入，而不是转义
-                json.dump(all_stations_latest_data, f, indent=4, ensure_ascii=False)
-            print(f"数据已成功保存到文件: {str(out_put)}")
-        except Exception as e:
-            print(f"\n错误：写入JSON文件 '{str(out_put)}' 时失败: {e}")
+    # if all_stations_latest_data:
+    #     try:
+    #         with open(str(out_put), 'w', encoding='utf-8') as f:
+    #             # 使用 json.dump 将数据写入文件
+    #             # indent=4 使文件格式化，易于阅读
+    #             # ensure_ascii=False 确保中文字符或特殊符号直接写入，而不是转义
+    #             json.dump(all_stations_latest_data, f, indent=4, ensure_ascii=False)
+    #         print(f"数据已成功保存到文件: {str(out_put)}")
+    #     except Exception as e:
+    #         print(f"\n错误：写入JSON文件 '{str(out_put)}' 时失败: {e}")
+
+
+if __name__ == "__main__":
+    # 1. 创建一个调度器实例
+    scheduler = BlockingScheduler(timezone="UTC")  # 建议指定时区
+
+    # 2. 添加任务
+    # 'cron' 触发器功能强大，可以像Linux的crontab一样设置
+    # minute=0 表示在每小时的第0分钟执行
+    scheduler.add_job(run_timer_process_gtsdata, 'cron', hour='*', minute=0)
+
+    # --- 其他常用调度示例 (供参考) ---
+    # scheduler.add_job(run_main_task, 'interval', minutes=10) # 每10分钟执行一次
+    # scheduler.add_job(run_main_task, 'cron', day_of_week='mon-fri', hour=17, minute=30) # 每周一到周五17:30执行
+
+    print("✅ APScheduler 调度器已启动。等待下一个整点执行...")
+
+    try:
+        # 3. 启动调度器 (这是一个阻塞操作，会一直运行)
+        scheduler.start()
+    except (KeyboardInterrupt, SystemExit):
+        # 优雅地关闭调度器
+        scheduler.shutdown()
+        print("🛑 调度器已关闭。")

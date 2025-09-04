@@ -2,8 +2,9 @@ from typing import List
 import arrow
 from arrow import Arrow
 from datetime import datetime
-from sqlalchemy import select, update, MetaData, Column, Integer, text, Float, Table
+from sqlalchemy import select, update, MetaData, Column, Integer, text, Float, Table, bindparam
 from sqlalchemy.dialects.mysql import DATETIME, INTEGER, TINYINT, VARCHAR
+from sqlalchemy.dialects.mysql import insert as mysql_insert
 from sqlalchemy.ext.automap import automap_base
 
 import numpy as np
@@ -111,67 +112,120 @@ class GTSSurgeRealData:
         :param to_coverage:
         :return:
         """
-        # dist_stationcodes: set[str] = set([temp.station_code for temp in realdata_list])
-        # for dist_station_code in dist_stationcodes:
-        #     temp_stationcode_realdata = list(filter(lambda o: o['station_code'] == dist_station_code, realdata_list))
-        # 按照 station_code | timestamp | gmt_dt 查询，若存在则批量更新
-        # 动态修改当前的表名
+
+        if not realdata_list:
+            print(f'[-] realdata_list for {station_code} is empty, skipping insertion.')
+            return
+
+        # 【修改】动态修改表名。注意：此操作在多线程环境下不安全，可能导致线程间互相影响。
+        # 如果是单线程爬虫或任务，则此方法是可接受的。
         StationRealDataSpecific.__table__.name = tab_name
         # 根据 station_code | gmt_start < gmt_realitime < gmt_end 过滤结果
         # 对于要插入的集合进行遍历
         # -> S1: station_code | gmt_realtime | ts 存在 则 update
         # -> s2: station_code | gmt_realtime | ts 不存在 则 create
-        # query = select(StationRealDataSpecific).where(StationRealDataSpecific.station_code == station_code).where(
-        #     StationRealDataSpecific.gmt_realtime > self.gmt_start).where(
-        #     StationRealDataSpecific.gmt_realtime < self.gmt_end)
-        query = select(StationRealDataSpecific).where(StationRealDataSpecific.station_code == station_code)
-        # 插入
-        print(f'[-]inserting {station_code} realdata,count:{len(realdata_list)}~')
 
-        for temp_realdata in realdata_list:
-            # ERROR:
-            #     raise AttributeError(f"Use item[{name!r}] to get field value")
-            # AttributeError: Use item['surge'] to get field value
-            # 判断是否存在
-            temp_query = query.where(StationRealDataSpecific.gmt_realtime == temp_realdata.dt_utc)
-            temp_now: datetime = datetime.utcnow()
-            surge: float = temp_realdata.sea_level_meters
-            if np.isnan(surge):
-                continue
-            try:
-                temp_query = self.session.scalars(temp_query).fetchall()
-                # TODO:[*] 23-03-03 注意此处的 surge 有可能为 nan 需要加入判断
-                # TODO:[-] 25-09-01 加入是否覆盖的判断，若可覆盖则 update
-                if len(temp_query) > 0 and to_coverage == True:
-                    # update
-                    # 在执行如下 update 操作时出错
-                    stmt = update(StationRealDataSpecific).where(
-                        StationRealDataSpecific.station_code == station_code).where(
-                        StationRealDataSpecific.gmt_realtime == temp_realdata.dt_utc).values(
-                        surge=surge)
-                    self.session.execute(stmt) \
-                        # .execute_options(
-                    # synchronize_session="evaluate")
-                else:
-                    obj_realdata = StationRealDataSpecific(station_code=station_code, surge=surge,
-                                                           tid=self.tid,
-                                                           gmt_realtime=temp_realdata.dt_utc,
-                                                           ts=temp_realdata.timestamp_utc)
-                    self.session.add(obj_realdata)
-            except Exception as ex:
-                # print('[!]func: _insert_realdata ERROR!')
-                print(ex.args)
+        print(f'[-] Processing {station_code} realdata, count: {len(realdata_list)}...')
 
-        self.session.commit()
-        self.session.close()
-        print(f'[-]insert:{station_code} realdata over!')
-        # TODO:[-] 23-03-02 写入完当前爬取的 station 潮位后更新 tb:station_status
-        # TODO:[*] 23-03-02 此处修改为根据 realdata_list 找到最近的实况时间
+        # 【新增】步骤1: 准备批量操作所需的数据
+        # 过滤掉 surge 为 nan 的数据，并准备好待处理的数据字典列表
+        valid_realdata = []
+        """
+            等待批量操作的实况数据集
+            过滤掉 surge 为 nan 的数据，并准备好待处理的数据字典列表
+        """
 
-        station_status = StationStatusData(station_code)
-        station_status.insert(TaskTypeEnum.SUCCESS, self.tid, self.gmt_end.datetime)
-        print(f'[-]updated {station_code} status~')
-        pass
+        for item in realdata_list:
+            surge = item.sea_level_meters
+            if not np.isnan(surge):
+                valid_realdata.append({
+                    "station_code": station_code,
+                    "surge": surge,
+                    "tid": self.tid,
+                    "gmt_realtime": item.dt_utc,
+                    "ts": item.timestamp_utc
+                })
+
+        if not valid_realdata:
+            print(f'[-] All realdata for {station_code} had NaN surge, skipping.')
+            return
+
+        # 【新增】提取所有需要检查的时间戳
+        all_dts = {item['gmt_realtime'] for item in valid_realdata}
+
+        # 【新增】步骤2: 一次性查询出数据库中已存在的所有相关记录
+        query = select(StationRealDataSpecific.gmt_realtime).where(
+            StationRealDataSpecific.station_code == station_code,
+            StationRealDataSpecific.gmt_realtime.in_(all_dts)
+        )
+        existing_dts = set(self.session.scalars(query).all())
+
+        # 【新增】步骤3: 在内存中区分需要插入和需要更新的数据
+        records_to_insert = []
+        records_to_update = []
+
+        for data_dict in valid_realdata:
+            if data_dict['gmt_realtime'] in existing_dts:
+                # 如果数据已存在，并且允许覆盖，则加入更新列表
+                if to_coverage:
+                    records_to_update.append(data_dict)
+            else:
+                # 如果数据不存在，则加入插入列表
+                records_to_insert.append(data_dict)
+
+        try:
+            # 【新增】步骤4: 执行批量插入
+            if records_to_insert:
+                # 使用 add_all 效率不如 core insert，但如果需要返回 ORM 对象特性，则可使用
+                # 这里我们直接使用字典，所以用 Core insert 更高效
+                self.session.add_all([StationRealDataSpecific(**data) for data in records_to_insert])
+                # SQLAlchemy 2.0 风格的批量插入
+                # self.session.execute(StationRealDataSpecific.__table__.insert(), records_to_insert)
+                print(f'[-] Bulk inserted {len(records_to_insert)} records for {station_code}.')
+
+            # 【新增】步骤5: 执行批量更新
+            if records_to_update:
+                # SQLAlchemy 2.0 风格的批量更新
+                # 注意：这种批量更新语法要求字典中包含主键或唯一约束的键值，以便定位要更新的行。
+                # 在这个场景下，复合唯一键是 (station_code, gmt_realtime)。
+                # 利用 SQLAlchemy 的 bindparam 功能来实现动态参数绑定，其核心目的是为了执行高效的批量更新（Batch Update）。
+
+                # bindparam 在 SQLAlchemy 中代表一个“绑定的参数”，可以理解为一个占位符。
+                # eg: UPDATE station_realdata_specific SET surge = ? WHERE station_code = ? AND gmt_realtime = ?
+                stmt = update(StationRealDataSpecific).where(
+                    StationRealDataSpecific.station_code == bindparam('_station_code'),
+                    StationRealDataSpecific.gmt_realtime == bindparam('_gmt_realtime')
+                ).values(surge=bindparam('surge'))
+
+                # 准备符合 bindparam 的数据
+                # update_params 是一个参数字典的列表。
+                update_params = [
+                    {'_station_code': d['station_code'], '_gmt_realtime': d['gmt_realtime'], 'surge': d['surge']}
+                    for d in records_to_update
+                ]
+
+                self.session.execute(stmt, update_params)
+                print(f'[-] Bulk updated {len(records_to_update)} records for {station_code}.')
+
+            self.session.commit()
+            print(f'[-] insert/update for {station_code} realdata is over!')
+
+        except Exception as ex:
+            self.session.rollback()  # 【新增】发生异常时回滚
+            print(f'[!] Exception in _insert_realdata for {station_code}: {ex}')
+            # 可以在这里重新抛出异常或进行更详细的日志记录
+        finally:
+            self.session.close()  # 【修改】确保 session 总能被关闭
+
+            # 【修改】更新状态表的逻辑移到事务之外，因为它是一个独立的操作
+            # 并且只在成功插入/更新数据后执行
+        if valid_realdata:
+            # 【优化】直接从处理过的数据中找到最新的时间，而不是再次遍历原始列表
+            latest_realtime = max(item['gmt_realtime'] for item in valid_realdata)
+            station_status = StationStatusData(station_code)
+            # 假设 StationStatusData 内部会管理自己的 session
+            station_status.insert(TaskTypeEnum.SUCCESS, self.tid, latest_realtime)
+            print(f'[-] updated {station_code} status~')
 
     def _check_need_split_tab(self, dt: Arrow, to_create: bool = True) -> bool:
         """
@@ -261,37 +315,51 @@ class GTSSurgeRealData:
 class StationStatusData:
     def __init__(self, station_code: str):
         self.station_code = station_code
-        self.session = DbFactory().Session
+        # self.session = DbFactory().Session
+        # 【修改】将 Session 的获取和管理放在方法内部，确保每个操作都是一个独立的事务单元。
+        #  这使得该类更加健壮和可复用。
+        self.db_factory = DbFactory()
 
     def insert(self, status: TaskTypeEnum, tid: int, gmt_realtime: datetime):
         """
-            插入 station_code 更新 gmt_update_dt | status
-        :param status: 状态
-        :param tid: tb: task_info id
-        :param gmt_realtime: 最后的潮位实况时间
-        :return:
+            【推荐方案】使用 MySQL 的 ON DUPLICATE KEY UPDATE 实现原子性的 UPSERT。
+             这是 SQLAlchemy 2.0 风格下处理此问题的最佳实践，高效且并发安全。
         """
-        # session = self.session
+        session = self.db_factory.Session
         now_utc: datetime = datetime.utcnow()
-        # step1: 从 tb: station_status 中查找，若存在则update | 不存在则 create
-        query = select(StationStatus).where(StationStatus.station_code == self.station_code)
+
         try:
-            temp_first = self.session.scalars(query).fetchall()
-            if len(temp_first) > 0:
-                # update
-                # AttributeError: 'CursorResult' object has no attribute 'execute_options'
-                self.session.execute(
-                    update(StationStatus).where(StationStatus.station_code == self.station_code).values(
-                        status=status.value,
-                        gmt_realtime=gmt_realtime, gmt_modify_time=now_utc))
-            else:
-                obj_status = StationStatus(station_code=self.station_code, tid=tid, status=status.value,
-                                           gmt_realtime=gmt_realtime)
-                self.session.add(obj_status)
-            self.session.commit()
+            # 步骤 1: 构建一个标准的 INSERT 语句，这是 SQLAlchemy 2.0 的方式
+            # 我们使用 mysql_insert 来告诉 SQLAlchemy 我们要构建一个 MySQL 特定的语句
+            insert_stmt = mysql_insert(StationStatus).values(
+                station_code=self.station_code,
+                tid=tid,
+                status=status.value,
+                gmt_realtime=gmt_realtime,
+                gmt_create_time=now_utc,  # 仅在插入时生效
+                gmt_modify_time=now_utc  # 插入和更新时都应更新
+            )
+
+            # 步骤 2: 在 INSERT 语句上添加 ON DUPLICATE KEY UPDATE 子句
+            # 这是此方案的核心，它将两个操作合并成了一个原子操作
+            upsert_stmt = insert_stmt.on_duplicate_key_update(
+                # 如果发生键冲突（即 station_code 已存在），则更新以下字段
+                status=insert_stmt.inserted.status,
+                gmt_realtime=insert_stmt.inserted.gmt_realtime,
+                gmt_modify_time=now_utc  # 直接设置为当前时间
+            )
+            # insert_stmt.inserted 是一个特殊对象，代表了你正尝试插入的值
+
+            # 步骤 3: 执行这一个语句
+            # SQLAlchemy 会将其编译为一条完整的、原子的 SQL 发送给 MySQL
+            session.execute(upsert_stmt)
+            session.commit()
+
         except Exception as ex:
-            print(f'status insert error!msg:{ex.args}')
-        # self.session.close()
+            print(f'[!] StationStatusData insert/update error for {self.station_code}! msg: {ex}')
+            session.rollback()
+        finally:
+            session.close()
 
 
 class SpiderTask:
@@ -299,10 +367,12 @@ class SpiderTask:
         self.now_utc = now_utc
         self.count_stations = count_stations
         self.task_name = task_name
-        self.session = DbFactory().Session
+        # self.session = DbFactory().Session
+        self.db_factory = DbFactory()
         pass
 
     def to_db(self) -> int:
+        session = self.db_factory.Session
         interval: int = TASK_OPTIONS.get('interval')
         task_info: SpiderTaskInfo = SpiderTaskInfo(timestamp=self.now_utc.timestamp(), task_name=self.task_name,
                                                    task_type=TaskTypeEnum.SUCCESS.value,
@@ -310,9 +380,12 @@ class SpiderTask:
         # with DbFactory().Session as session:
         task_id: int = -1
         try:
-            self.session.add(task_info)
-            self.session.commit()
+            session.add(task_info)
+            session.commit()
+        except Exception as ex:
+            print(f'[!] SpiderTaskInfo insert/update error for msg: {ex}')
+            session.rollback()
         finally:
             task_id = task_info.id
-            self.session.close()
+            session.close()
         return task_id
