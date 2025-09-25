@@ -2,12 +2,13 @@ from typing import List
 import arrow
 from arrow import Arrow
 from datetime import datetime
-from sqlalchemy import select, update, MetaData, Column, Integer, text, Float, Table, bindparam
+from sqlalchemy import select, update, MetaData, Column, Integer, text, Float, Table, bindparam, UniqueConstraint
 from sqlalchemy.dialects.mysql import DATETIME, INTEGER, TINYINT, VARCHAR
 from sqlalchemy.dialects.mysql import insert as mysql_insert
 from sqlalchemy.ext.automap import automap_base
 
 import numpy as np
+from typing_extensions import deprecated
 
 from common.enums import TaskTypeEnum
 from conf.settings import TASK_OPTIONS, DB_TABLE_SPLIT_OPTIONS
@@ -23,10 +24,17 @@ class GTSSurgeRealData:
         实现分表功能
     """
 
-    def __init__(self, gts_schema: GTSEntiretySchema, tid: int):
+    def __init__(self, gts_schema: GTSEntiretySchema, tid: int, sensor: str):
+        """
+
+        @param gts_schema:
+        @param tid:
+        @param sensor: + 25-09-08 新加入的传感器类型
+        """
         self.station_code = gts_schema.station_code
         self.list_station_realdata: List[GTSPointSchema] = gts_schema.data_points
         self.tid = tid
+        self.sensor = sensor
         self.session = DbFactory().Session
 
     @property
@@ -72,6 +80,9 @@ class GTSSurgeRealData:
         # 注意此处为 scrapy.Item 不能直接通过 obj.xx 需要通过 obj.get('xx') 获取
         months_list: List[int] = [temp.dt_utc.month for temp in realdata_list]
 
+        # TODO:[-] 25-09-08 新加入的传感器类型 sensor
+        sensor: str = self.sensor
+
         def _filter_month(val_realdata, month: int) -> bool:
             return val_realdata.dt.month == month
 
@@ -100,14 +111,17 @@ class GTSSurgeRealData:
                 # 若不存在指定的表，需要创建该表
                 self._create_station_realdata_tab(tab_name, now_arrow)
             # 动态更新表名
-            self._insert_realdata(tab_name, station_code, realdata_list, to_coverage=to_coverage)
+            self._insert_realdata(tab_name, station_code, sensor, realdata_list, to_coverage=to_coverage)
 
         pass
 
-    def _insert_realdata(self, tab_name: str, station_code: str, realdata_list: List[GTSPointSchema],
-                         to_coverage: bool = False):
+    def _insert_realdata_backup(self, tab_name: str, station_code: str, realdata_list: List[GTSPointSchema],
+                                to_coverage: bool = False):
         """
             若 to_coverage = True 则向表中覆盖已存在的数据
+            + 25-09-05 此处使用 upsert的放心进行更新
+            该方法暂时废弃（备份）
+            @deprecated
         :param realdata_list:
         :param to_coverage:
         :return:
@@ -151,21 +165,21 @@ class GTSSurgeRealData:
             return
 
         # 【新增】提取所有需要检查的时间戳
-        all_dts = {item['gmt_realtime'] for item in valid_realdata}
+        all_ts = {item['ts'] for item in valid_realdata}
 
         # 【新增】步骤2: 一次性查询出数据库中已存在的所有相关记录
-        query = select(StationRealDataSpecific.gmt_realtime).where(
+        query = select(StationRealDataSpecific.ts).where(
             StationRealDataSpecific.station_code == station_code,
-            StationRealDataSpecific.gmt_realtime.in_(all_dts)
+            StationRealDataSpecific.ts.in_(all_ts)
         )
-        existing_dts = set(self.session.scalars(query).all())
+        existing_ts = set(self.session.scalars(query).all())
 
         # 【新增】步骤3: 在内存中区分需要插入和需要更新的数据
         records_to_insert = []
         records_to_update = []
 
         for data_dict in valid_realdata:
-            if data_dict['gmt_realtime'] in existing_dts:
+            if data_dict['ts'] in existing_ts:
                 # 如果数据已存在，并且允许覆盖，则加入更新列表
                 if to_coverage:
                     records_to_update.append(data_dict)
@@ -194,38 +208,126 @@ class GTSSurgeRealData:
                 # eg: UPDATE station_realdata_specific SET surge = ? WHERE station_code = ? AND gmt_realtime = ?
                 stmt = update(StationRealDataSpecific).where(
                     StationRealDataSpecific.station_code == bindparam('_station_code'),
-                    StationRealDataSpecific.gmt_realtime == bindparam('_gmt_realtime')
+                    StationRealDataSpecific.ts == bindparam('_ts')
                 ).values(surge=bindparam('surge'))
 
                 # 准备符合 bindparam 的数据
                 # update_params 是一个参数字典的列表。
                 update_params = [
-                    {'_station_code': d['station_code'], '_gmt_realtime': d['gmt_realtime'], 'surge': d['surge']}
+                    {'_station_code': d['station_code'], '_ts': d['ts'], 'surge': d['surge']}
                     for d in records_to_update
                 ]
 
-                self.session.execute(stmt, update_params)
+                """
+                    “当使用带有额外 WHERE 条件的批量更新时，目前不支持对持久化对象进行批量同步。请添加 synchronize_session=None 执行选项来绕过此操作。”
+                """
+                self.session.execute(stmt, update_params, execution_options={"synchronize_session": None})
                 print(f'[-] Bulk updated {len(records_to_update)} records for {station_code}.')
 
             self.session.commit()
             print(f'[-] insert/update for {station_code} realdata is over!')
 
+            # 【修改】更新状态表的逻辑移到事务之外，因为它是一个独立的操作
+            # 并且只在成功插入/更新数据后执行
+            if valid_realdata:
+                # 【优化】直接从处理过的数据中找到最新的时间，而不是再次遍历原始列表
+                latest_realtime = max(item['gmt_realtime'] for item in valid_realdata)
+                station_status = StationStatusData(station_code)
+                # 假设 StationStatusData 内部会管理自己的 session
+                station_status.insert(TaskTypeEnum.SUCCESS, self.tid, latest_realtime)
+                print(f'[-] updated {station_code} status~')
+
         except Exception as ex:
+
+            """
+                错误1：
+                InvalidRequestError('bulk synchronize of persistent objects not supported when using bulk update with additional WHERE criteria right now.  add synchronize_session=None execution option to bypass synchronize of persistent objects.')
+                
+                错误2:
+                InvalidRequestError('No primary key value supplied for column(s) station_realdata_specific.id; per-row ORM Bulk UPDATE by Primary Key requires that records contain primary key values')
+            """
             self.session.rollback()  # 【新增】发生异常时回滚
             print(f'[!] Exception in _insert_realdata for {station_code}: {ex}')
             # 可以在这里重新抛出异常或进行更详细的日志记录
         finally:
             self.session.close()  # 【修改】确保 session 总能被关闭
 
-            # 【修改】更新状态表的逻辑移到事务之外，因为它是一个独立的操作
-            # 并且只在成功插入/更新数据后执行
-        if valid_realdata:
-            # 【优化】直接从处理过的数据中找到最新的时间，而不是再次遍历原始列表
+    def _insert_realdata(self, tab_name: str, station_code: str, sensor: str, realdata_list: List[GTSPointSchema],
+                         to_coverage: bool = False):
+        """
+            使用 MySQL 的 "ON DUPLICATE KEY UPDATE" (Upsert) 机制批量插入或更新实况数据，
+            并同时更新 gmt_realtime 和 gmt_modify_time 字段。
+            """
+        if not realdata_list:
+            print(f'[-] realdata_list for {station_code} is empty, skipping insertion.')
+            return
+
+        # 动态修改表名
+        StationRealDataSpecific.__table__.name = tab_name
+
+        # 准备数据 (代码不变)
+        valid_realdata = []
+        for item in realdata_list:
+            surge = item.sea_level_meters
+            if not np.isnan(surge):
+                valid_realdata.append({
+                    "station_code": station_code,
+                    "surge": surge,
+                    "sensor": sensor,
+                    "tid": self.tid,
+                    "gmt_realtime": item.dt_utc,  # gmt_realtime 已包含在数据中
+                    "ts": item.timestamp_utc
+                })
+
+        if not valid_realdata:
+            print(f'[-] All realdata for {station_code} had NaN surge, skipping.')
+            return
+
+        print(f'[-] Processing {len(valid_realdata)} valid records for {station_code} via MySQL Upsert...')
+
+        try:
+            # 步骤 2: 构建增强版的 Upsert 语句
+            insert_stmt = mysql_insert(StationRealDataSpecific)
+
+            # 在 on_duplicate_key_update 中添加需要更新的字段
+
+            """
+                on_duplicate_key_update(...) 里面列出的字段
+                不是用来查找的，而是用来告诉数据库：“既然你已经因为 (station_code, ts) 重复而找到了那一行，
+                现在请把那一行的这些字段 (surge, sensor 等) 更新成我提供的新值。
+            """
+            upsert_stmt = insert_stmt.on_duplicate_key_update(
+                # 1. 更新 surge: 使用新数据的值
+                surge=insert_stmt.inserted.surge,
+                sensor=insert_stmt.inserted.sensor,
+
+                # 2. 更新 gmt_realtime: 同样使用新数据的值
+                # gmt_realtime=insert_stmt.inserted.gmt_realtime,
+
+                # 3. 更新 gmt_modify_time: 使用数据库服务器的当前时间
+                #    sqlalchemy.func.now() 会被翻译成 SQL 的 NOW() 函数
+                gmt_modify_time=arrow.utcnow().datetime
+            )
+
+            # 步骤 3: 执行 (代码不变)
+            self.session.execute(upsert_stmt, valid_realdata)
+            self.session.commit()
+            print(f'[-] Bulk upsert for {station_code} completed successfully.')
+
+            # 后续状态更新 (代码不变)
             latest_realtime = max(item['gmt_realtime'] for item in valid_realdata)
+            # TODO:[-] 25-09-15 使用 upsert 的方式更新站点状态表
             station_status = StationStatusData(station_code)
-            # 假设 StationStatusData 内部会管理自己的 session
             station_status.insert(TaskTypeEnum.SUCCESS, self.tid, latest_realtime)
-            print(f'[-] updated {station_code} status~')
+            print(f'[-] Updated {station_code} status.')
+
+        except Exception as ex:
+            self.session.rollback()
+            import traceback
+            print(f'[!] Exception in _insert_realdata (MySQL Upsert) for {station_code}: {ex}')
+            traceback.print_exc()
+        finally:
+            self.session.close()
 
     def _check_need_split_tab(self, dt: Arrow, to_create: bool = True) -> bool:
         """
@@ -281,12 +383,15 @@ class GTSSurgeRealData:
         meta_data = MetaData()
         Table(tab_name, meta_data, Column('id', Integer, primary_key=True),
               Column('is_del', TINYINT(1), nullable=False, server_default=text("'0'"), default=0),
-              Column('station_code', VARCHAR(200), nullable=False, index=True), Column('tid', Integer, nullable=False),
+              Column('station_code', VARCHAR(200), nullable=False, index=True),
+              Column('sensor', VARCHAR(10), nullable=False, index=True, default='bwl'),
+              Column('tid', Integer, nullable=False),
               Column('surge', Float, nullable=False),
               Column('ts', Integer, nullable=False),
               Column('gmt_realtime', DATETIME(fsp=6), default=datetime.utcnow, index=True),
               Column('gmt_create_time', DATETIME(fsp=6), default=datetime.utcnow),
-              Column('gmt_modify_time', DATETIME(fsp=6), default=datetime.utcnow))
+              Column('gmt_modify_time', DATETIME(fsp=6), default=datetime.utcnow),
+              UniqueConstraint('station_code', 'ts', 'sensor', name='uq_station_code_ts'))
         db_factory = DbFactory()
         session = db_factory.Session
         engine = db_factory.engine
@@ -299,12 +404,23 @@ class GTSSurgeRealData:
             except Exception as ex:
                 print(ex.args)
         # TODO:[-] 23-04-28 还需要插入表 station_realdata_index
-        year: int = dt.format('yyyy')
-        local_start: arrow.Arrow = arrow.Arrow(year=year, month=dt.format('MM'), day=1, hour=0, minute=0)
-        local_end: arrow.Arrow = local_start.shift(month=1)
-        gmt_start: arrow.Arrow = local_start.shift(hour=-8)
-        gmt_end: arrow.Arrow = local_end.shift(hour=-8)
-        tab_index: StationRealDataIndex = StationRealDataIndex(tab_name=tab_name, year=year,
+        year: int = dt.year
+
+        # 2. 使用 floor 计算 dt 所在月份的第一天 00:00:00
+        #    这会保留 dt 的原始时区信息。
+        #    例如，如果 dt 是 2025-09-15 14:36 (北京时间), month_start 将是 2025-09-01 00:00:00 (北京时间)
+        month_start: arrow.Arrow = dt.floor('month')
+
+        # 3. 从本月开始时间，向后推移一个月，得到下个月的开始时间
+        #    这作为数据库查询的“开区间”结束点，是最佳实践。
+        #    month_end 将是 2025-10-01 00:00:00 (北京时间)
+        month_end: arrow.Arrow = month_start.shift(months=+1)
+
+        # 4. 将本地时区的起止时间转换为数据库需要的 UTC (世界时)
+        gmt_start: arrow.Arrow = month_start.to('utc')
+        gmt_end: arrow.Arrow = month_end.to('utc')
+
+        tab_index: StationRealDataIndex = StationRealDataIndex(table_name=tab_name, year=year,
                                                                gmt_start=gmt_start.datetime,
                                                                gmt_end=gmt_end.datetime)
         session.add(tab_index)
@@ -344,6 +460,7 @@ class StationStatusData:
             # 这是此方案的核心，它将两个操作合并成了一个原子操作
             upsert_stmt = insert_stmt.on_duplicate_key_update(
                 # 如果发生键冲突（即 station_code 已存在），则更新以下字段
+                tid=tid,
                 status=insert_stmt.inserted.status,
                 gmt_realtime=insert_stmt.inserted.gmt_realtime,
                 gmt_modify_time=now_utc  # 直接设置为当前时间

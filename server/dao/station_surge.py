@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.sql import func
 
 from common.default import DEFAULT_LATLNG, DEFAULT_SURGE
+from common.dicts import dict_gts_sensor, dict_unique_sensors
 from models.models import StationRealDataSpecific, StationRealDataIndex, RegionInfo, StationInfo
 from schema.region import RegionSchema
 from schema.station_surge import SurgeRealDataSchema
@@ -320,6 +321,8 @@ class StationSurgeDao(BaseDao):
             # sql = sql_str.bindparams(start=start_str,
             #                          end=end_str,
             #                          station_code=station_code)
+            # TODO:[-] 25-09-22 新加入的根据code获取对应的sensor
+            sensor_type: str = dict_unique_sensors.get(station_code)
 
             sql_str = text(f"""
                             SELECT *
@@ -327,6 +330,7 @@ class StationSurgeDao(BaseDao):
                             WHERE {tb_name}.gmt_realtime >= '{start_str}'
                               AND {tb_name}.gmt_realtime <= '{end_str}'
                               AND {tb_name}.station_code = '{station_code}'
+                              AND sensor='{sensor_type}'
                               AND MINUTE({tb_name}.gmt_realtime) = 0
                             ORDER BY {tb_name}.gmt_realtime {order_desc}
                         """)

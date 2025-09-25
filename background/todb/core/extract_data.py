@@ -20,7 +20,7 @@ from schemas.surge import GTSPointSchema, GTSEntiretySchema
 # 使用 pathlib.Path 定义路径
 BASE_DATA_PATH = Path("/root/Decoded_Data")
 # 要提取的最新数据点数量
-RECORDS_TO_EXTRACT = 20
+RECORDS_TO_EXTRACT = 180
 
 
 # --- 配置区域结束 ---
@@ -126,6 +126,7 @@ def get_latest_sea_level_data(root_dir: Path, now_utc: arrow.Arrow) -> List[GTSE
                 parts = file_path.name.split('.')
                 if len(parts) != 3:
                     continue
+                # TODO:[-] 25-09-08 通过文件名获取传感器类型
                 station_code, sensor_type, _ = parts
             except ValueError:
                 continue
@@ -151,6 +152,8 @@ def get_latest_sea_level_data(root_dir: Path, now_utc: arrow.Arrow) -> List[GTSE
             except Exception as e:
                 print(f"警告：读取或解析文件 '{file_path.name}' 时出错: {e}", file=sys.stderr)
                 continue
+
+            # sensor_type = file_path.name.split('.')[1]
 
             # 6. 获取最后 N 条记录 (如果不足N条，则获取所有记录)
             latest_records = df.tail(RECORDS_TO_EXTRACT)
@@ -232,6 +235,7 @@ def run_timer_process_gtsdata():
     for temp_station in all_stations_latest_data:
         temp_code: str = temp_station.station_code
         temp_realdata: List[GTSPointSchema] = temp_station.data_points
+        temp_sensor: str = temp_station.sensor_type
         # step2: 将解析后的gts数据集 task 以及 gts data 写入 db
         now_utc: arrow.Arrow = arrow.Arrow.utcnow()
         date_utc_ymdhm: str = now_utc.format('YYYYMMDDHHmm')
@@ -243,7 +247,7 @@ def run_timer_process_gtsdata():
         task_info = SpiderTask(now_utc, len(all_stations_latest_data), task_name)
         tid = task_info.to_db()
         # step2-2 写入 realdata
-        stationSurge = GTSSurgeRealData(temp_station, tid)
+        stationSurge = GTSSurgeRealData(temp_station, tid, temp_sensor)
         # step1: 创建分表
         # stationSurge.create_split_tab()
         # step2: 像 station_realdata_specific 表中写入当前实况数据
@@ -263,16 +267,19 @@ def run_timer_process_gtsdata():
 
 
 if __name__ == "__main__":
+    # 测试立刻执行
+    # run_timer_process_gtsdata()
+    # pass
     # 1. 创建一个调度器实例
     scheduler = BlockingScheduler(timezone="UTC")  # 建议指定时区
 
     # 2. 添加任务
     # 'cron' 触发器功能强大，可以像Linux的crontab一样设置
     # minute=0 表示在每小时的第0分钟执行
-    scheduler.add_job(run_timer_process_gtsdata, 'cron', hour='*', minute=0)
+    # scheduler.add_job(run_timer_process_gtsdata, 'cron', hour='*', minute=0)
 
     # --- 其他常用调度示例 (供参考) ---
-    # scheduler.add_job(run_main_task, 'interval', minutes=10) # 每10分钟执行一次
+    scheduler.add_job(run_timer_process_gtsdata, 'interval', minutes=30)  # 每10分钟执行一次
     # scheduler.add_job(run_main_task, 'cron', day_of_week='mon-fri', hour=17, minute=30) # 每周一到周五17:30执行
 
     print("✅ APScheduler 调度器已启动。等待下一个整点执行...")

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Date, Float, ForeignKey, Integer, text
+from sqlalchemy import Column, Date, Float, ForeignKey, Integer, text, UniqueConstraint
 from sqlalchemy.dialects.mysql import DATETIME, INTEGER, TINYINT, VARCHAR
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import ForeignKey, Sequence, MetaData, Table
@@ -70,7 +70,14 @@ class StationRealDataSpecific(IIdModel, IDel, IModel, IRealDataDt):
     surge: Mapped[float] = mapped_column(default=DEFAULT_SURGE)
     # 所属的 SpiderTaskInfo id
     tid: Mapped[int] = mapped_column(default=0)
+    # 传感器类型-str
+    sensor: Mapped[str] = mapped_column(default='bwl')
     __tablename__ = 'station_realdata_specific'
+
+    # TODO:[-] 25-09-05 添加复合唯一约束，这是让 ON DUPLICATE KEY UPDATE 生效的关键
+    __table_args__ = (
+        UniqueConstraint('station_code', 'ts', 'sensor', name='uq_station_code_ts'),
+    )
 
 
 class StationInfo(IIdModel, IDel, IModel):
@@ -109,6 +116,11 @@ class StationStatus(IIdModel, IDel, IModel):
     gmt_realtime: Mapped[datetime] = mapped_column(default=datetime.utcnow)
 
     __tablename__ = 'station_status'
+
+    # TODO:[-] 25-09-15 添加复合唯一约束，这是让 ON DUPLICATE KEY UPDATE 生效的关键
+    __table_args__ = (
+        UniqueConstraint('station_code', name='uq_station'),
+    )
 
 
 class CommonDict(IIdModel, IDel, IModel):
