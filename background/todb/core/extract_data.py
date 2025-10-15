@@ -13,6 +13,7 @@ import pandas as pd
 from apscheduler.schedulers.blocking import BlockingScheduler
 
 from conf.settings import TASK_OPTIONS
+from conf.store_conf import STORE_OPTIONS
 from core.data import SpiderTask, GTSSurgeRealData
 from schemas.surge import GTSPointSchema, GTSEntiretySchema
 
@@ -209,7 +210,8 @@ def get_latest_sea_level_data(root_dir: Path, now_utc: arrow.Arrow) -> List[GTSE
 
 
 def run_timer_process_gtsdata():
-    dir_path_str: str = r'/Volumes/upload2surge/Decoded_Data'
+    store_options: dict = STORE_OPTIONS.get('gts')
+    dir_path_str: str = str(Path(store_options.get('path')) / store_options.get('relative_path'))
     dir_path: pathlib.Path = pathlib.Path(dir_path_str)
     out_put: pathlib.Path = pathlib.Path(r'/Users/evaseemefly/03data/02station') / 'all_station_225.json'
     now_utc: arrow.Arrow = arrow.utcnow()

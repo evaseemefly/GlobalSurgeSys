@@ -3,13 +3,14 @@ import arrow
 # 按 Ctrl+F5 执行或将其替换为您的代码。
 # 按 按两次 Shift 在所有地方搜索类、文件、工具窗口、操作和设置。
 import numpy as np
-import netCDF4 as nc
+# import netCDF4 as nc
 import pandas as pd
 import numpy.ma as ma
 import matplotlib as mpl
 import matplotlib.pyplot as pltz
 import xarray as xar
 import rioxarray
+from apscheduler.schedulers.blocking import BlockingScheduler
 from sqlalchemy import create_engine
 from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.orm import sessionmaker
@@ -25,6 +26,7 @@ import re
 from typing import List
 
 from core.db import DbFactory
+from core.extract_data import run_timer_process_gtsdata
 from models.models import to_migrate
 from models.models import StationAstronomicTideRealDataModel
 
@@ -151,12 +153,39 @@ def read_path_files_list(dir_path: str) -> List[pathlib.Path]:
         # print(temp_pathlib)
     return list_pathes
 
+
 def spider_gts_data():
     """
+        TODO:[*] 25-10-13
+        将 extract_data 中的入口代码移至此处
         step1: 根据当前时间
     @return:
     """
+    # 测试立刻执行
+    # run_timer_process_gtsdata()
+    # pass
+    # 1. 创建一个调度器实例
+    scheduler = BlockingScheduler(timezone="UTC")  # 建议指定时区
+
+    # 2. 添加任务
+    # 'cron' 触发器功能强大，可以像Linux的crontab一样设置
+    # minute=0 表示在每小时的第0分钟执行
+    # scheduler.add_job(run_timer_process_gtsdata, 'cron', hour='*', minute=0)
+
+    # --- 其他常用调度示例 (供参考) ---
+    scheduler.add_job(run_timer_process_gtsdata, 'interval', minutes=30)  # 每10分钟执行一次
+
+    print("✅ APScheduler 调度器已启动。等待下一个整点执行...")
+
+    try:
+        # 3. 启动调度器 (这是一个阻塞操作，会一直运行)
+        scheduler.start()
+    except (KeyboardInterrupt, SystemExit):
+        # 优雅地关闭调度器
+        scheduler.shutdown()
+        print("🛑 调度器已关闭。")
     pass
+
 
 def main():
     # to_db()
@@ -164,7 +193,6 @@ def main():
     # to_do_astronomictide()
     # 定时处理gts潮位数据
     spider_gts_data()
-
 
 
 # 按间距中的绿色按钮以运行脚本。
