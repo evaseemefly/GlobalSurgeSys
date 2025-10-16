@@ -13,7 +13,8 @@ import pandas as pd
 from apscheduler.schedulers.blocking import BlockingScheduler
 
 from conf.settings import TASK_OPTIONS
-from conf.store_conf import STORE_OPTIONS
+# from conf.store_conf import STORE_OPTIONS
+from conf.settings import settings, STORE_OPTIONS
 from core.data import SpiderTask, GTSSurgeRealData
 from schemas.surge import GTSPointSchema, GTSEntiretySchema
 
@@ -210,11 +211,13 @@ def get_latest_sea_level_data(root_dir: Path, now_utc: arrow.Arrow) -> List[GTSE
 
 
 def run_timer_process_gtsdata():
-    store_options: dict = STORE_OPTIONS.get('gts')
+    store_options: dict = STORE_OPTIONS
     dir_path_str: str = str(Path(store_options.get('path')) / store_options.get('relative_path'))
     dir_path: pathlib.Path = pathlib.Path(dir_path_str)
     out_put: pathlib.Path = pathlib.Path(r'/Users/evaseemefly/03data/02station') / 'all_station_225.json'
     now_utc: arrow.Arrow = arrow.utcnow()
+    now_utc_str: str = now_utc.format('YYYY-MM-DD HH:mm:ss')
+    print(f"▶️ APScheduler 调度器已启动。当前UTC时间:{now_utc_str}...")
     """
         {'data_points': [{'sea_level_meters': 4125.162, 'timestamp_utc': '2025-08-26T00:00:00'}], 'sensor_type': 'bwl', 'source_file': 'dch3.bwl.238', 'station_code': 'dch3'}
         {'dber': {'station_code': 'dber', 
@@ -266,6 +269,9 @@ def run_timer_process_gtsdata():
     #         print(f"数据已成功保存到文件: {str(out_put)}")
     #     except Exception as e:
     #         print(f"\n错误：写入JSON文件 '{str(out_put)}' 时失败: {e}")
+    now_utc_end: arrow.Arrow = arrow.utcnow()
+    now_utc_end_str: str = now_utc_end.format('YYYY-MM-DD HH:mm:ss')
+    print(f"⏸️ APScheduler 调度器执行结束。当前UTC时间:{now_utc_end_str}...")
 
 
 if __name__ == "__main__":

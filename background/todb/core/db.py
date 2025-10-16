@@ -32,12 +32,13 @@ class DbFactory:
         db_options = DATABASES.get(db_mapping)
         self.engine_str = engine_str if engine_str else db_options.get('ENGINE')
         self.host = host if host else db_options.get('HOST')
-        self.port = port if port else db_options.get('POST')
+        self.port = port if port else db_options.get('PORT')
         self.db_name = db_name if db_name else db_options.get('NAME')
         self.user = user if user else db_options.get('USER')
         self.password = pwd if pwd else db_options.get('PASSWORD')
+        connect_str: str = f"mysql+{self.engine_str}://{self.user}:{self.password}@{self.host}:{self.port}/{self.db_name}"
         self.engine = create_engine(
-            f"mysql+{self.engine_str}://{self.user}:{self.password}@{self.host}:{self.port}/{self.db_name}",
+            connect_str,
             echo=False, pool_pre_ping=True)
         self._session_def = sessionmaker(bind=self.engine)
 
@@ -46,4 +47,3 @@ class DbFactory:
         if self._session_def is None:
             self._session_def = sessionmaker(bind=self.engine)
         return self._session_def()
-

@@ -5,7 +5,7 @@ services:
     build:
       context: .
       dockerfile: ./Dockerfile
-    image: mini_py39_x64:1.18
+    image: mini_py39_x64:1.19
     container_name: global-spider-gts
     working_dir: /opt/project
     privileged: true

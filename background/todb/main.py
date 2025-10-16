@@ -173,9 +173,12 @@ def spider_gts_data():
     # scheduler.add_job(run_timer_process_gtsdata, 'cron', hour='*', minute=0)
 
     # --- 其他常用调度示例 (供参考) ---
-    scheduler.add_job(run_timer_process_gtsdata, 'interval', minutes=30)  # 每10分钟执行一次
+    # 关键点：设置任务的首次执行时间为当前)  # 每10分钟执行一次
+    # 给任务一个唯一的ID是个好习惯
+    scheduler.add_job(run_timer_process_gtsdata, 'interval', minutes=50, id='spider_gts_job',
+                      next_run_time=datetime.now(scheduler.timezone))
 
-    print("✅ APScheduler 调度器已启动。等待下一个整点执行...")
+    print("✅ APScheduler 调度器已启动。间隔:30min 执行...")
 
     try:
         # 3. 启动调度器 (这是一个阻塞操作，会一直运行)
