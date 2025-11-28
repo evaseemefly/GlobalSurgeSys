@@ -10,13 +10,11 @@ http:
       service: forecast-service
       entryPoints:
         - web
-
     station-router:
       rule: "PathPrefix(`/station`)"  # 匹配 /station 路由
       service: station-service
       entryPoints:
         - web
-
     region-router:
       rule: "PathPrefix(`/region`)"  # 匹配 /region 路由
       service: region-service

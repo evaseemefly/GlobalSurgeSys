@@ -6,8 +6,6 @@ from sqlalchemy.orm import Mapped
 from sqlalchemy.orm import mapped_column, DeclarativeBase
 from sqlalchemy.ext.declarative import declarative_base
 
-from common.default import DEFAULT_FK_STR, NONE_ID
-
 BaseMeta = declarative_base()
 
 

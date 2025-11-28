@@ -5,8 +5,8 @@ DATABASES = {
         'NAME': 'surge_global_sys',  # 数据库名
         'USER': 'root',  # 账号
         'PASSWORD': '',
-        'HOST': '128.5.9.79',  # HOST
-        # 'HOST': 'host.docker.internal',  # HOST
+        # 'HOST': '128.5.9.79',  # HOST
+        'HOST': 'host.docker.internal',  # HOST
         'POST': 3306,  # 端口
         'OPTIONS': {
             "init_command": "SET foreign_key_checks = 0;",

@@ -1,12 +1,9 @@
 from sqlalchemy.orm import Mapped, declarative_base
-from sqlalchemy.orm import mapped_column, DeclarativeBase
+from sqlalchemy.orm import mapped_column
 from sqlalchemy import String
-from datetime import datetime
-from arrow import Arrow
-from common.default import DEFAULT_FK, UNLESS_INDEX, NONE_ID, DEFAULT_CODE, DEFAULT_PATH_TYPE, DEFAULT_PRO, \
-    UNLESS_RANGE, DEFAULT_TABLE_NAME, DEFAULT_YEAR, DEFAULT_SURGE, DEFAULT_NAME, DEFAULT_COUNTRY_INDEX, DEFAULT_PATH, \
-    DEFAULT_EXT, DEFAULT_ENUM
-from models.base_model import IDel, IModel, IIdIntModel, IIssueTime, IForecastTime, IReleaseTime
+from common.default import DEFAULT_FK,   DEFAULT_NAME,  DEFAULT_PATH, \
+    DEFAULT_ENUM
+from models.base_model import IDel, IModel, IIdIntModel,  IForecastTime, IReleaseTime
 
 BaseMeta = declarative_base()
 
