@@ -12,7 +12,7 @@ class StoreConfig:
     # ip = 'http://192.168.0.104:82'
     # ip = 'http://128.5.9.79:82'
     # ip = 'http://localhost:82'
-    ip = 'http://192.168.0.109:82'
+    ip = 'http://128.5.10.129:82'
 
     store_relative_path: str = 'images/GLOBAL_FORECAST'
 

@@ -3,7 +3,7 @@ DATABASES = {
     'default': {
         'ENGINE': 'mysqldb',  # 数据库引擎
         'NAME': 'surge_global_sys',  # 数据库名
-        'USER': 'root',  # 账号
+        'USER': 'surge',  # 账号
         'PASSWORD': '',
         # 'HOST': '128.5.9.79',  # HOST
         'HOST': 'host.docker.internal',  # HOST

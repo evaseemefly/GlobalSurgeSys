@@ -1,0 +1,19 @@
+version: "3"
+
+services:
+  global_spider_gts:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    image: mini_py39_x64:1.19
+    container_name: global-spider-gts
+    working_dir: /opt/project
+    privileged: true
+    command:
+      - /bin/bash
+    tty: true
+    volumes:
+      - /home/surge/DATA_LOCAL/GLOBAL_GTS_SPIDER/todb:/opt/project
+      - /home/surge/DATA_REMOTE/gts_share:/data/share
+
+

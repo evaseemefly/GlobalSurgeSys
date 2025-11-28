@@ -21,7 +21,7 @@ os.chdir(dir_path)
 
 
 
-@repeat(every(30).minutes)
+@repeat(every(60).minutes)
 def delay_global_station():
     now_utc_str: str = arrow.utcnow().format('YYYYMMDDHHmm')
     print(f'doing delay task:{now_utc_str}')
