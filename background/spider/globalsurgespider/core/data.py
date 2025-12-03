@@ -149,7 +149,7 @@ class StationSurgeRealData:
                         StationRealDataSpecific.station_code == station_code).where(
                         StationRealDataSpecific.gmt_realtime == temp_realdata['dt']).values(
                         surge=surge)
-                    self.session.execute(stmt)\
+                    self.session.execute(stmt)
                         # .execute_options(
                     # synchronize_session="evaluate")
                 else:

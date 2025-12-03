@@ -12,7 +12,8 @@ from datetime import datetime, timedelta
 # --- 配置部分 ---
 BASE_URL = "https://severeweather.wmo.int/json"
 # 数据保存的根目录
-SAVE_ROOT_DIR = "/Volumes/DRCC_DATA/01DATA/03全球监测系统/wmo_ty_path_list"
+# SAVE_ROOT_DIR = "/Volumes/DRCC_DATA/01DATA/03全球监测系统/wmo_ty_path_list"
+SAVE_ROOT_DIR = "/Volumes/fbcz_data/WMO_TY_PATH"
 # 设置请求头
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36"

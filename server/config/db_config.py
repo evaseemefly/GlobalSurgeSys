@@ -5,13 +5,16 @@ class DBConfig:
     :date: 2020-02-11
     """
 
-    driver = 'mysql+mysqldb'
+    # TODO:[*] 25-09-16 数据库引擎暂时修改为 pymysql
+    # driver = 'mysql+mysqldb'
+    driver = 'mysql+pymysql'
     # host = '127.0.0.1'
     # 宿主机的mysql服务
     # host = 'host.docker.internal'
     # 线上环境由于 server 解释器为 docker，通过ifconfig 查看 docker0 的网络地址，通过该地址访问
     # host = '172.17.0.1'
-    host = '128.5.9.79'
+    # host = '128.5.9.79'
+    host = '172.16.30.156'
     port = '3306'
     username = 'root'
     password = 'Nmefc_814'

@@ -34,3 +34,16 @@ DB_TABLE_SPLIT_OPTIONS = {
         'tab_split_name': 'station_realdata_specific_ioc'
     }
 }
+
+SPIDER_OPTIONS = {
+    # API 基础路径
+    'api_base_url': 'https://api.ioc-sealevelmonitoring.org/v2/sensors',
+    # 每次请求的数据量限制
+    'limit': 2000,
+    # 请求超时时间 (秒)
+    'timeout': 30,
+    # 定时任务执行间隔 (分钟)
+    'scheduler_interval': 1,
+    # (可选优化) 最大重试次数
+    'max_retries': 3
+}

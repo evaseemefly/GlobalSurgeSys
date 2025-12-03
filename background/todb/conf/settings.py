@@ -182,12 +182,3 @@ DB_TABLE_SPLIT_OPTIONS = {
 STORE_OPTIONS = settings.store_options.model_dump()
 pass
 
-# --- 在项目其他文件中如何使用 ---
-# from conf.settings import settings, DATABASES
-#
-# # 推荐使用新的方式，有类型提示和补全
-# print(f"数据库主机: {settings.db.HOST}")
-# print(f"任务间隔: {settings.task_options.interval}")
-#
-# # 旧的方式依然可用
-# print(f"数据库主机 (旧方式): {DATABASES['default']['HOST']}")

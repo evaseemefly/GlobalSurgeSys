@@ -126,6 +126,11 @@ class StationStatus(IIdModel, IDel, IModel):
     tid: Mapped[int] = mapped_column(nullable=False, default=0)
     __tablename__ = 'station_status'
 
+    # station_code 的唯一性约束
+    __table_args__ = (
+        UniqueConstraint('station_code', name='uix_station_code'),
+    )
+
 
 class CommonDict(IIdModel, IDel, IModel):
     pid: Mapped[int] = mapped_column(nullable=False, default=-1)

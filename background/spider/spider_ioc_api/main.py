@@ -6,6 +6,7 @@ import arrow
 from sqlalchemy.orm import Session
 
 from common.default import DEFAULT_NAME
+from conf.settings import SPIDER_OPTIONS
 from core.data import StationSurgeRealData
 # 导入你的模型和数据库连接工厂
 # 假设 DbFactory 在 core.db 中，并且能够提供 Session
@@ -13,8 +14,9 @@ from core.db import DbFactory
 from models.models import StationRealDataSpecific, StationInfo
 from conf.keys import Keys
 
+_limit_count = SPIDER_OPTIONS.get('limit')
 # 配置 API 信息
-API_URL = 'https://api.ioc-sealevelmonitoring.org/v2/sensors?showall=all&limit=2000'
+API_URL = f'https://api.ioc-sealevelmonitoring.org/v2/sensors?showall=all&limit={_limit_count}'
 HEADERS = {
     'accept': 'application/json',
     'X-API-KEY': Keys.ioc_api_token
@@ -29,7 +31,7 @@ def fetch_and_save_data():
 
     # 1. 获取 API 数据
     try:
-        response = requests.get(API_URL, headers=HEADERS, timeout=10)
+        response = requests.get(API_URL, headers=HEADERS, timeout=30)
         response.raise_for_status()
         data_list = response.json()
     except Exception as e:
