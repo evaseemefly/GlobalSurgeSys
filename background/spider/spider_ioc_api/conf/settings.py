@@ -1,4 +1,10 @@
+import os
+
 from conf.keys import Passwords
+
+# TODO: [-] 25-12-04 NEW 定义项目根目录和日志存储路径
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+LOG_STORE_PATH = os.path.join(BASE_DIR, 'logs')
 
 # 数据库的配置，配置借鉴自 django 的 settings 的结构
 DATABASES = {

@@ -8,6 +8,7 @@ from sqlalchemy.exc import NoSuchTableError
 from sqlalchemy.ext.automap import automap_base
 import sqlalchemy
 import numpy as np
+import logging
 
 from common.enums import TaskTypeEnum
 from models.models import StationRealDataSpecific, SpiderTaskInfo, StationStatus, StationRealDataIndex, BaseMeta
@@ -17,6 +18,8 @@ from sqlalchemy import Column, Date, Float, ForeignKey, Integer, text
 from sqlalchemy.dialects.mysql import DATETIME, INTEGER, TINYINT, VARCHAR
 from core.db import DbFactory
 from conf.settings import TASK_OPTIONS, DB_TABLE_SPLIT_OPTIONS
+# TODO: [-] 25-12-04 NEW 引入 loguru
+from loguru import logger
 
 
 class StationSurgeRealData:
@@ -81,7 +84,7 @@ class StationSurgeRealData:
             if tab_name not in self.__class__._verified_tables:
                 # 缓存未命中，说明是新月或者程序刚启动，需要查询数据库
                 if not self._check_exist_tab(tab_name):
-                    print(f"[-] Table {tab_name} does not exist, creating...")
+                    logger.info(f"[-] Table {tab_name} does not exist, creating...")
                     self._create_station_realdata_tab(tab_name, first_dt)
 
                 # TODO:[-] 25-12-02 NEW 确认表存在后，加入缓存。下一次分钟级任务将直接命中缓存。
@@ -119,10 +122,10 @@ class StationSurgeRealData:
                 table = Table(tab_name, BaseMeta.metadata, autoload_with=self.db_factory.engine)
         except NoSuchTableError:
             # 理论上前面已经 check_exist 并 create 了，这里是双重保险
-            print(f"[!] Table {tab_name} not found during insert.")
+            logger.error(f"[!] Table {tab_name} not found during insert.")
             return
 
-        print(f'[-] Inserting  realdata into {tab_name}, count: {len(realdata_list)}')
+        logger.info(f'[-] Inserting  realdata into {tab_name}, count: {len(realdata_list)}')
 
         try:
             for temp_realdata in realdata_list:
@@ -203,11 +206,11 @@ class StationSurgeRealData:
                     self.session.execute(insert_ignore_stmt)
 
             self.session.commit()
-            print(f'[-] Insert/Update {station_code} finished.')
+            logger.info(f'[-] Insert/Update {station_code} finished.')
 
         except Exception as ex:
             self.session.rollback()
-            print(f"[!] Error inserting data: {ex}")
+            logger.error(f"[!] Error inserting data: {ex}")
             # print(ex.args)
         finally:
             # 建议在外部关闭 session，或者在这里关闭
@@ -246,7 +249,7 @@ class StationSurgeRealData:
         if not station_latest_map:
             return
 
-        print(f'[-] Updating StationStatus for {len(station_latest_map)} stations...')
+        logger.info(f'[-] Updating StationStatus for {len(station_latest_map)} stations...')
 
         try:
             # 2. 构建批量 Upsert 语句
@@ -284,11 +287,11 @@ class StationSurgeRealData:
 
             self.session.execute(upsert_stmt)
             self.session.commit()
-            print(f'[-] StationStatus batch update finished.')
+            logger.info(f'[-] StationStatus batch update finished.')
 
         except Exception as ex:
             self.session.rollback()
-            print(f"[!] Error updating station status: {ex}")
+            logger.error(f"[!] Error updating station status: {ex}")
 
     def _get_split_tab_name(self, dt: arrow.Arrow) -> str:
         """
@@ -352,5 +355,5 @@ class StationSurgeRealData:
             session.close()
             return True
         except Exception as ex:
-            print(f"[!] Create table error: {ex}")
+            logger.error(f"[!] Create table error: {ex}")
             return False
