@@ -181,7 +181,7 @@ def fetch_and_save_data():
                     'surge': surge_val,
                     'dt': real_time_arrow,  # 关键：传递 arrow 对象
                     'ts': int(real_time_arrow.timestamp()),
-                    'sensor_type': sensor_type,
+                    'sensor': sensor_type,
                     # 'tid': 0  # tid 已在 StationSurgeRealData 初始化时指定
                 }
                 data_list_for_db.append(record_dict)

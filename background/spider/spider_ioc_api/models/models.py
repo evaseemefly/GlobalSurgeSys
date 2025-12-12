@@ -82,12 +82,12 @@ class StationRealDataSpecific(IIdModel, IDel, IModel, IRealDataDt):
     surge: Mapped[float] = mapped_column(default=DEFAULT_SURGE)
     # 所属的 SpiderTaskInfo id
     tid: Mapped[int] = mapped_column(default=0)
-    sensor_type: Mapped[str] = mapped_column(String(32), default=DEFAULT_NAME)
+    sensor: Mapped[str] = mapped_column(String(32), default=DEFAULT_NAME)
     __tablename__ = 'station_realdata_specific'
 
     # (可选) 在模型层声明约束，虽然动态分表主要看 core/data.py 的实现，但这里保留是个好习惯
     __table_args__ = (
-        UniqueConstraint('station_code', 'sensor_type', 'ts', name='uix_station_sensor_ts'),
+        UniqueConstraint('station_code', 'sensor', 'ts', name='uix_station_sensor_ts'),
     )
 
 

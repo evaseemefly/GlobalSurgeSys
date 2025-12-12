@@ -134,7 +134,7 @@ class StationSurgeRealData:
                 surge_val = temp_realdata['surge']
                 # TODO: [修改] 从数据字典中获取 station_code
                 station_code = temp_realdata.get('station_code')
-                sensor_type: str = temp_realdata.get('sensor_type')
+                sensor: str = temp_realdata.get('sensor')
 
                 if surge_val is None or np.isnan(surge_val):
                     continue
@@ -186,7 +186,7 @@ class StationSurgeRealData:
                     gmt_realtime=dt_val,
                     ts=ts_val,
                     is_del=0,
-                    sensor_type=sensor_type,
+                    sensor=sensor,
                     gmt_create_time=datetime.utcnow(),
                     gmt_modify_time=datetime.utcnow()
                 )
@@ -323,7 +323,7 @@ class StationSurgeRealData:
 
         # TODO: [修正] 在创建新表时，强制加入联合唯一索引
         # 只有有了这个索引，ON DUPLICATE KEY UPDATE 才会生效
-        uix_constraint = UniqueConstraint('station_code', 'sensor_type', 'ts', name=f'uix_{tab_name}_unique')
+        uix_constraint = UniqueConstraint('station_code', 'sensor', 'ts', name=f'uix_{tab_name}_unique')
 
         # 定义新表
         new_table = Table(tab_name, BaseMeta.metadata, *columns, uix_constraint, extend_existing=True)

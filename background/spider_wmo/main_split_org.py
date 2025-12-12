@@ -161,16 +161,16 @@ def fetch_and_save_typhoon_data():
         resp.raise_for_status()
         inforce_data = resp.json()
 
-        # 保存 tc_inforce.json
-        with open(os.path.join(current_save_dir, "tc_inforce.json"), 'w', encoding='utf-8') as f:
-            json.dump(inforce_data, f, ensure_ascii=False, indent=4)
-
         # 3. 解析台风列表
         tc_list = inforce_data.get("inforce", [])
         if not tc_list:
             # print("当前没有活跃的台风。")
             logger.warning('当前没有活跃的台风')
             return
+
+        # 保存 tc_inforce.json
+        with open(os.path.join(current_save_dir, "tc_inforce.json"), 'w', encoding='utf-8') as f:
+            json.dump(inforce_data, f, ensure_ascii=False, indent=4)
 
         if not os.path.exists(current_save_dir):
             os.makedirs(current_save_dir)
