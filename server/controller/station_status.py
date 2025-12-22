@@ -60,6 +60,7 @@ def get_one_station_status(station_code: str):
 @app.get('/all/latlng', response_model=List[StationStatusAndGeoInfoSchema], summary="包含行政区划的全部站点状态")
 def get_all_station_join_geoinfo(pid: int = None):
     """
+        STEP1: 首页加载时请求的接口
          获取所有站点的状态及geo信息(包含surge默认值)
     :return:  {
                 "station_code": "waka",

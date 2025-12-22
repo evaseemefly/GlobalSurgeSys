@@ -8,6 +8,10 @@ import time
 from datetime import datetime
 # TODO: 引入 timedelta 用于计算预报时间
 from datetime import datetime, timedelta
+# TODO: [-] 25-12-04 NEW 引入 loguru
+from loguru import logger
+
+from util.logger import init_logger
 
 # --- 配置部分 ---
 BASE_URL = "https://severeweather.wmo.int/json"
@@ -83,8 +87,11 @@ def process_and_save_txt(json_data, save_dir, code, name, org):
             lat = item.get("lat")
             lng = item.get("lng")
             pressure = item.get("pressure")
+            # TODO: 25-12-04 获取 max_wind_speed
+            max_wind_speed = item.get("max_wind_speed")
 
-            lines.append(f"{time_str} {lat} {lng} {pressure}")
+            # TODO: 25-12-04 将 max_wind_speed 追加至最后一列
+            lines.append(f"{time_str} {lat} {lng} {pressure} {max_wind_speed}")
 
         # 4. 处理预报数据
         if last_analysis_time and forecast_list:
@@ -102,8 +109,11 @@ def process_and_save_txt(json_data, save_dir, code, name, org):
                 lat = item.get("lat")
                 lng = item.get("lng")
                 pressure = item.get("pressure")
+                # TODO: 25-12-04 获取 max_wind_speed
+                max_wind_speed = item.get("max_wind_speed")
 
-                lines.append(f"{time_str} {lat} {lng} {pressure}")
+                # TODO: 25-12-04 将 max_wind_speed 追加至最后一列
+                lines.append(f"{time_str} {lat} {lng} {pressure} {max_wind_speed}")
 
         # 5. 生成文件名并保存
         # 格式: {code}_{name}_{org}_{当前时间}.txt
@@ -131,32 +141,49 @@ def fetch_and_save_typhoon_data():
 
     try:
         # 1. 创建按当前时间命名的文件夹
-        current_time_str = datetime.now().strftime("%Y%m%d_%H%M")
-        current_save_dir = os.path.join(SAVE_ROOT_DIR, current_time_str)
+        # TODO: 25-12-04 使用 arrow 获取 UTC 时间，并按 yyyy/mm/xxx 结构创建目录
+        utc_now = arrow.utcnow()
+        year_str = utc_now.format('YYYY')
+        month_str = utc_now.format('MM')
+        # xxx 为具体的批次时间文件夹，例如 20251204_1200
+        batch_folder_name = utc_now.format('YYYYMMDD_HHMM')
 
-        if not os.path.exists(current_save_dir):
-            os.makedirs(current_save_dir)
-            print(f"[{current_time_str}] 创建目录: {current_save_dir}")
+        # 拼接完整路径: SAVE_ROOT_DIR/yyyy/mm/yyyyMMdd_HHmm
+        current_save_dir = os.path.join(SAVE_ROOT_DIR, year_str, month_str, batch_folder_name)
 
         # 2. 获取活跃台风列表 (tc_inforce.json)
         inforce_url = f"{BASE_URL}/tc_inforce.json"
-        print(f"正在获取活跃列表: {inforce_url}")
+
+        # print(f"正在获取活跃列表: {inforce_url}")
+        logger.info(f"正在获取活跃列表: {inforce_url}")
 
         resp = s.get(inforce_url, headers=HEADERS, timeout=TIME_OUT)
         resp.raise_for_status()
         inforce_data = resp.json()
 
+        # 3. 解析台风列表
+        tc_list = inforce_data.get("inforce", [])
+        if not tc_list:
+            # print("当前没有活跃的台风。")
+            logger.warning('当前没有活跃的台风')
+            return
+
+        # TODO:[-] 25-12-15 创建指定目录 (修改位置：移至文件写入之前)
+        # 只有当存在活跃台风时，才真正创建目录
+        if not os.path.exists(current_save_dir):
+            os.makedirs(current_save_dir)
+            logger.info(f"[{batch_folder_name}] (UTC) 创建目录: {current_save_dir}")
+
         # 保存 tc_inforce.json
         with open(os.path.join(current_save_dir, "tc_inforce.json"), 'w', encoding='utf-8') as f:
             json.dump(inforce_data, f, ensure_ascii=False, indent=4)
 
-        # 3. 解析台风列表
-        tc_list = inforce_data.get("inforce", [])
-        if not tc_list:
-            print("当前没有活跃的台风。")
-            return
+        if not os.path.exists(current_save_dir):
+            os.makedirs(current_save_dir)
+            # print(f"[{batch_folder_name}] (UTC) 创建目录: {current_save_dir}")
+            logger.info(f"[{batch_folder_name}] (UTC) 创建目录: {current_save_dir}")
 
-        print(f"发现 {len(tc_list)} 条活跃台风记录，开始解析并获取详情...")
+        logger.info(f"发现 {len(tc_list)} 条活跃台风记录，开始解析并获取详情...")
 
         for tc_info in tc_list:
             # 根据 fields 定义:
@@ -182,7 +209,7 @@ def fetch_and_save_typhoon_data():
             # 去重 (保持列表顺序可以使用 dict.fromkeys)
             target_codes = list(dict.fromkeys(target_codes))
 
-            print(f"--- 台风 [{name}] (SysID: {sysid}) 关联编号: {target_codes} ---")
+            logger.info(f"--- 台风 [{name}] (SysID: {sysid}) 关联编号: {target_codes} ---")
 
             # 4. 遍历该台风下的所有 code 分别请求详情
             for code in target_codes:
@@ -225,19 +252,22 @@ def fetch_and_save_typhoon_data():
                         process_and_save_txt(detail_data, current_save_dir, code, name, agency_code)
 
                     else:
-                        print(f"  [失败] Code: {code} HTTP {detail_resp.status_code}")
+                        logger.error(f"  [失败] Code: {code} HTTP {detail_resp.status_code}")
 
                 except Exception as e:
-                    print(f"  [错误] 请求 {code} 时发生异常: {e}")
-
-        print(f"[{current_time_str}] 本次任务完成。\n")
+                    logger.error(f"  [错误] 请求 {code} 时发生异常: {e}")
+        # TODO: 25-12-04 更新完成提示信息
+        logger.info(f"[{batch_folder_name}] (UTC) 本次任务完成。\n")
 
     except Exception as e:
-        print(f"执行过程中发生全局错误: {e}")
+        logger.error(f"执行过程中发生全局错误: {e}")
 
 
 if __name__ == "__main__":
-    print("开始启动台风数据监控脚本 (按 Ctrl+C 停止)...")
+
+    # 初始化 loguru 日志模块
+    init_logger()
+    logger.info("开始启动台风数据监控脚本 (按 Ctrl+C 停止)...")
 
     # 立即执行一次
     fetch_and_save_typhoon_data()

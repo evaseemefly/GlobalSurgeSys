@@ -8,7 +8,9 @@ from sqlalchemy.exc import NoSuchTableError
 from sqlalchemy.ext.automap import automap_base
 import sqlalchemy
 import numpy as np
+import logging
 
+from common.enums import TaskTypeEnum
 from models.models import StationRealDataSpecific, SpiderTaskInfo, StationStatus, StationRealDataIndex, BaseMeta
 from sqlalchemy.dialects.mysql import insert as mysql_insert
 from sqlalchemy import ForeignKey, Sequence, MetaData, Table
@@ -16,6 +18,8 @@ from sqlalchemy import Column, Date, Float, ForeignKey, Integer, text
 from sqlalchemy.dialects.mysql import DATETIME, INTEGER, TINYINT, VARCHAR
 from core.db import DbFactory
 from conf.settings import TASK_OPTIONS, DB_TABLE_SPLIT_OPTIONS
+# TODO: [-] 25-12-04 NEW 引入 loguru
+from loguru import logger
 
 
 class StationSurgeRealData:
@@ -80,7 +84,7 @@ class StationSurgeRealData:
             if tab_name not in self.__class__._verified_tables:
                 # 缓存未命中，说明是新月或者程序刚启动，需要查询数据库
                 if not self._check_exist_tab(tab_name):
-                    print(f"[-] Table {tab_name} does not exist, creating...")
+                    logger.info(f"[-] Table {tab_name} does not exist, creating...")
                     self._create_station_realdata_tab(tab_name, first_dt)
 
                 # TODO:[-] 25-12-02 NEW 确认表存在后，加入缓存。下一次分钟级任务将直接命中缓存。
@@ -89,6 +93,11 @@ class StationSurgeRealData:
             # 执行插入
             self._insert_realdata(tab_name, batch_data, to_coverage=to_coverage)
 
+        # ==========================================
+        # TODO:[-] 25-12-02 NEW 批量更新站点状态表
+        # 在所有实况数据入库尝试后，统一更新这些站点的最新状态
+        self._batch_update_station_status(realdata_list)
+        # ==========================================
         return True
 
     def _insert_realdata(self, tab_name: str, realdata_list: List[Dict], to_coverage: bool = False):
@@ -113,10 +122,10 @@ class StationSurgeRealData:
                 table = Table(tab_name, BaseMeta.metadata, autoload_with=self.db_factory.engine)
         except NoSuchTableError:
             # 理论上前面已经 check_exist 并 create 了，这里是双重保险
-            print(f"[!] Table {tab_name} not found during insert.")
+            logger.error(f"[!] Table {tab_name} not found during insert.")
             return
 
-        print(f'[-] Inserting  realdata into {tab_name}, count: {len(realdata_list)}')
+        logger.info(f'[-] Inserting  realdata into {tab_name}, count: {len(realdata_list)}')
 
         try:
             for temp_realdata in realdata_list:
@@ -125,7 +134,7 @@ class StationSurgeRealData:
                 surge_val = temp_realdata['surge']
                 # TODO: [修改] 从数据字典中获取 station_code
                 station_code = temp_realdata.get('station_code')
-                sensor_type: str = temp_realdata.get('sensor_type')
+                sensor: str = temp_realdata.get('sensor')
 
                 if surge_val is None or np.isnan(surge_val):
                     continue
@@ -177,7 +186,7 @@ class StationSurgeRealData:
                     gmt_realtime=dt_val,
                     ts=ts_val,
                     is_del=0,
-                    sensor_type=sensor_type,
+                    sensor=sensor,
                     gmt_create_time=datetime.utcnow(),
                     gmt_modify_time=datetime.utcnow()
                 )
@@ -197,15 +206,92 @@ class StationSurgeRealData:
                     self.session.execute(insert_ignore_stmt)
 
             self.session.commit()
-            print(f'[-] Insert/Update {station_code} finished.')
+            logger.info(f'[-] Insert/Update {station_code} finished.')
 
         except Exception as ex:
             self.session.rollback()
-            print(f"[!] Error inserting data: {ex}")
+            logger.error(f"[!] Error inserting data: {ex}")
             # print(ex.args)
         finally:
             # 建议在外部关闭 session，或者在这里关闭
             self.session.close()
+
+    def _batch_update_station_status(self, realdata_list: List[Dict]):
+        """
+            TODO:[-] 25-12-03
+            批量更新站点状态表 (StationStatus)
+            逻辑：
+            1. 从 realdata_list 中提取每个站点的最新时间。
+            2. 使用 Upsert 批量写入/更新 StationStatus。
+        """
+        if not realdata_list:
+            return
+
+        # 1. 数据预处理：按 station_code 分组，取 dt (lasttime) 最大的那条数据
+        # 这一步是为了防止一个批次里同一个站点有多条数据，导致无谓的多次更新，且确保写入的是最新时间
+        station_latest_map: Dict[str, Dict] = {}
+
+        for item in realdata_list:
+            code = item.get('station_code')
+            if not code:
+                continue
+
+            # 比较并保留该站点最新的数据
+            if code not in station_latest_map:
+                station_latest_map[code] = item
+            else:
+                current_dt = item.get('dt')
+                existing_dt = station_latest_map[code].get('dt')
+                # 确保都是 arrow 对象或 datetime 进行比较
+                if current_dt > existing_dt:
+                    station_latest_map[code] = item
+
+        if not station_latest_map:
+            return
+
+        logger.info(f'[-] Updating StationStatus for {len(station_latest_map)} stations...')
+
+        try:
+            # 2. 构建批量 Upsert 语句
+            # 注意：ON DUPLICATE KEY UPDATE 生效的前提是 station_code 在数据库中是 唯一索引 (UNIQUE)
+
+            # 准备 values 列表
+            values_to_insert = []
+            now_time = datetime.utcnow()
+
+            for code, item in station_latest_map.items():
+                values_to_insert.append({
+                    'station_code': code,
+                    'status': TaskTypeEnum.SUCCESS.value,  # 1001
+                    'gmt_realtime': item.get('dt').datetime,  # 更新为获取到的 lasttime
+                    'tid': self.tid,
+                    'is_del': 0,
+                    'gmt_create_time': now_time,
+                    'gmt_modify_time': now_time
+                })
+
+            # 使用 Core Table 构造 SQL (假设 StationStatus 表结构已通过 models 反射或导入)
+            # 如果 StationStatus 没有被 import 到这里，可以使用 Table 反射
+            status_table = StationStatus.__table__
+
+            insert_stmt = mysql_insert(status_table).values(values_to_insert)
+
+            # 3. 配置 Upsert 更新逻辑
+            # 当 station_code 冲突时，更新 status, gmt_realtime, gmt_modify_time
+            upsert_stmt = insert_stmt.on_duplicate_key_update(
+                status=insert_stmt.inserted.status,
+                gmt_realtime=insert_stmt.inserted.gmt_realtime,
+                gmt_modify_time=datetime.utcnow(),
+                tid=insert_stmt.inserted.tid
+            )
+
+            self.session.execute(upsert_stmt)
+            self.session.commit()
+            logger.info(f'[-] StationStatus batch update finished.')
+
+        except Exception as ex:
+            self.session.rollback()
+            logger.error(f"[!] Error updating station status: {ex}")
 
     def _get_split_tab_name(self, dt: arrow.Arrow) -> str:
         """
@@ -237,7 +323,7 @@ class StationSurgeRealData:
 
         # TODO: [修正] 在创建新表时，强制加入联合唯一索引
         # 只有有了这个索引，ON DUPLICATE KEY UPDATE 才会生效
-        uix_constraint = UniqueConstraint('station_code', 'sensor_type', 'ts', name=f'uix_{tab_name}_unique')
+        uix_constraint = UniqueConstraint('station_code', 'sensor', 'ts', name=f'uix_{tab_name}_unique')
 
         # 定义新表
         new_table = Table(tab_name, BaseMeta.metadata, *columns, uix_constraint, extend_existing=True)
@@ -269,5 +355,5 @@ class StationSurgeRealData:
             session.close()
             return True
         except Exception as ex:
-            print(f"[!] Create table error: {ex}")
+            logger.error(f"[!] Create table error: {ex}")
             return False

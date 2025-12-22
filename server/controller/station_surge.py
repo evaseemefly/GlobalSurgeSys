@@ -2,6 +2,7 @@ from typing import List
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Request
 
+from common.enums import DataSourceEnum
 from dao.station_surge import StationSurgeDao
 from dao.station_status import StationStatusDao
 from models.models import StationRealDataSpecific
@@ -13,11 +14,15 @@ app = APIRouter()
 
 @app.get('/one/', response_model=List[StationSurgeSchema],
          summary="获取单站的历史潮位集合")
-def get_one_station_surges(station_code: str, start_dt: datetime, end_dt: datetime):
+def get_one_station_surges(station_code: str, start_dt: datetime, end_dt: datetime,
+                           source: DataSourceEnum = DataSourceEnum.IOC):
     # 方式1: 使用原生sql
     # surge_list = StationSurgeDao().get_station_surge_list(station_code, start_dt, end_dt)
+    # TODO:[-] 25-12-08  加入多种源切换
+    #
+
     # 方式2: 使用 orm style2.0
-    surge_list = StationSurgeDao().get_station_surge_list_bysqlbindparams(station_code, start_dt, end_dt)
+    surge_list = StationSurgeDao().get_station_surge_list_bysqlbindparams(station_code, start_dt, end_dt, source)
     return surge_list
 
 

@@ -6,7 +6,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy.sql import func
 
 from common.default import DEFAULT_LATLNG, DEFAULT_SURGE
-from common.dicts import dict_gts_sensor, dict_unique_sensors
+from common.dicts import dict_gts_sensor, dict_unique_sensors, dict_ioc_sensors
+from common.enums import DataSourceEnum
 from models.models import StationRealDataSpecific, StationRealDataIndex, RegionInfo, StationInfo
 from schema.region import RegionSchema
 from schema.station_surge import SurgeRealDataSchema
@@ -39,7 +40,8 @@ class StationSurgeDao(BaseDao):
             list_surge.extend(list_surge_remain)
         return list_surge
 
-    def get_station_surge_list_bysqlbindparams(self, station_code: str, gmt_start: datetime, gmt_end: datetime) -> List[
+    def get_station_surge_list_bysqlbindparams(self, station_code: str, gmt_start: datetime, gmt_end: datetime,
+                                               source: DataSourceEnum = DataSourceEnum.GTS) -> List[
         SurgeRealDataSchema]:
         """
             根据传入的海洋站 code 以及 起止时间获取时间范围内的 surge data 集合
@@ -49,16 +51,17 @@ class StationSurgeDao(BaseDao):
         @param gmt_end:
         @return:
         """
+
         # TODO:[*] 23-03-12 此处存在一个问题:当 起止时间不在一月(已在spider模块修改)
         # 先判断是否需要联合表进行查询
         list_surge: List[StationRealDataSpecific] = self.get_target_dt_surge_bysqlbindparams(station_code, gmt_start,
                                                                                              gmt_end, True,
-                                                                                             False, True)
+                                                                                             False, True, source=source)
         if self._check_need_split_tab(gmt_start, gmt_end):
             # TODO:[-] 24-02-19 此处注意由于传入的还是起止时间未变，只是修改了 is_use_starttime_split=False 参数
             list_surge_remain = self.get_target_dt_surge_bysqlbindparams(station_code, gmt_start, gmt_end,
                                                                          is_use_starttime_split=False,
-                                                                         is_desc=False, is_hourly=True)
+                                                                         is_desc=False, is_hourly=True, source=source)
             list_surge.extend(list_surge_remain)
 
         # TODO:[*] 23-04-03 此处加入拼接
@@ -270,7 +273,7 @@ class StationSurgeDao(BaseDao):
 
     def get_target_dt_surge_bysqlbindparams(self, station_code: str, start: datetime, end: datetime,
                                             is_use_starttime_split: bool = True, is_desc: bool = True,
-                                            is_hourly: bool = True) -> \
+                                            is_hourly: bool = True, source: DataSourceEnum = DataSourceEnum.GTS) -> \
             List[
                 StationRealDataSpecific]:
         """
@@ -287,7 +290,7 @@ class StationSurgeDao(BaseDao):
         """
         # 对应分表的名称
         split_dt: datetime = start if is_use_starttime_split else end
-        tb_name: str = get_split_tablename(split_dt)
+        tb_name: str = get_split_tablename(split_dt, source)
         # 判断指定表是否存在
         session: Session = self.db.session
         filter_query = session.query(StationRealDataIndex).filter(StationRealDataIndex.table_name == tb_name,
@@ -321,8 +324,10 @@ class StationSurgeDao(BaseDao):
             # sql = sql_str.bindparams(start=start_str,
             #                          end=end_str,
             #                          station_code=station_code)
+            # TODO:[-] 25-12-11 darw : prs
             # TODO:[-] 25-09-22 新加入的根据code获取对应的sensor
-            sensor_type: str = dict_unique_sensors.get(station_code)
+            # sensor_type: str = dict_unique_sensors.get(station_code)
+            sensor_type: str = dict_ioc_sensors.get(station_code)
 
             sql_str = text(f"""
                             SELECT *
