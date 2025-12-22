@@ -168,6 +168,12 @@ def fetch_and_save_typhoon_data():
             logger.warning('当前没有活跃的台风')
             return
 
+        # TODO:[-] 25-12-15 创建指定目录 (修改位置：移至文件写入之前)
+        # 只有当存在活跃台风时，才真正创建目录
+        if not os.path.exists(current_save_dir):
+            os.makedirs(current_save_dir)
+            logger.info(f"[{batch_folder_name}] (UTC) 创建目录: {current_save_dir}")
+
         # 保存 tc_inforce.json
         with open(os.path.join(current_save_dir, "tc_inforce.json"), 'w', encoding='utf-8') as f:
             json.dump(inforce_data, f, ensure_ascii=False, indent=4)

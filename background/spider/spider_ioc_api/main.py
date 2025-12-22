@@ -28,7 +28,10 @@ from conf.settings import SPIDER_OPTIONS, LOG_STORE_PATH
 API_BASE_URL = SPIDER_OPTIONS.get('api_base_url')
 LIMIT_COUNT = SPIDER_OPTIONS.get('limit', 2000)
 TIMEOUT = SPIDER_OPTIONS.get('timeout', 30)
-SCHEDULER_INTERVAL = SPIDER_OPTIONS.get('scheduler_interval', 1)
+SCHEDULER_INTERVAL = SPIDER_OPTIONS.get('scheduler_interval', 150)
+# TODO:[*] 25-12-16 加载新 API 配置
+API_STATION_LIST = SPIDER_OPTIONS.get('api_station_list')
+API_STATION_DATA_TPL = SPIDER_OPTIONS.get('api_station_data_tpl')
 
 HEADERS = {
     'accept': 'application/json',
@@ -105,7 +108,7 @@ def get_session_with_retries():
     return session
 
 
-def fetch_and_save_data():
+def fetch_and_save_data_backup():
     """
     核心任务逻辑：获取数据 -> 解析 -> 存入数据库
     """
@@ -210,6 +213,149 @@ def fetch_and_save_data():
         logger.critical(f"任务执行过程发生严重错误: {e}")
     finally:
         session.close()
+
+
+def fetch_and_save_data():
+    """
+    核心任务逻辑：
+    1. 获取所有站点列表 (shortlist)
+    2. 遍历站点，每隔3秒请求一次详情数据 (limit=180)
+    3. 批量入库
+    """
+    logger.info("开始执行定时采集任务...")
+
+    http_session = get_session_with_retries()
+
+    # ==============================================================================
+    # TODO:[*] 25-12-16 STEP 1: 获取所有站点列表
+    # ==============================================================================
+    station_list = []
+    try:
+        # 获取站点列表，limit=2000 确保拿到所有
+        list_url = f"{API_STATION_LIST}?limit=2000"
+        logger.info(f"正在获取站点列表: {list_url}")
+
+        response = http_session.get(list_url, headers=HEADERS, timeout=TIMEOUT)
+        response.raise_for_status()
+        raw_list = response.json()
+
+        # TODO:[*] 25-12-16 new 逻辑修改：提取 Code 并去重
+        # 使用 set 去重，过滤掉 Code 为空的数据
+        unique_code_set = set()
+        for item in raw_list:
+            c = item.get('Code')
+            if c:
+                unique_code_set.add(c)
+
+        # 转为列表并排序（保证每次执行顺序一致，方便日志观察）
+        target_codes = sorted(list(unique_code_set))
+
+        logger.info(f"原始站点数: {len(raw_list)}，Code去重后站点数: {len(target_codes)}")
+
+    except Exception as e:
+        logger.error(f"获取站点列表失败: {e}")
+        return  # 列表都拿不到，直接退出
+
+    # ==============================================================================
+    # TODO:[*] 25-12-16 STEP 2 & 3: 遍历站点，延迟请求，批量入库
+    # ==============================================================================
+
+    # 实例化入库处理器 (复用 core/data.py)
+    db_handler = StationSurgeRealData(tid=0)
+
+    # 计算 skip_gaps_until (例如请求最近24小时的数据，或者直接依赖 limit=180)
+    # 为了保证数据连续性，这里生成一个 ISO 时间字符串，但主要依赖 limit=180 获取最新数据
+    # user_params: skip_gaps_until=2025-12-15T08:00
+    skip_time_str = arrow.now().shift(days=-1).format('YYYY-MM-DDTHH:mm')
+
+    total_stations = len(target_codes)
+
+    for index, code in enumerate(target_codes):
+        # code = station.get('Code')
+        if not code:
+            continue
+
+        logger.info(f"[{index + 1}/{total_stations}] 处理站点: {code}")
+
+        try:
+            # 1. 构造详情页 URL
+            # 这里的参数 logic: nofilter=false (过滤异常值), allsensors=false (仅主要传感器), limit=180 (最后180个点)
+            # skip_gaps_until 设为动态时间，或者你可以根据需求去掉它
+            data_url = API_STATION_DATA_TPL.format(code=code)
+            params = {
+                'nofilter': 'false',
+                'allsensors': 'false',
+                'limit': 180,
+                # 'skip_gaps_until': skip_time_str # 可选，如果只想要 limit=180 可以注释掉
+            }
+
+            # 2. 请求数据
+            data_resp = http_session.get(data_url, headers=HEADERS, params=params, timeout=TIMEOUT)
+
+            if data_resp.status_code != 200:
+                logger.warning(f"站点 {code} 数据请求失败: {data_resp.status_code}")
+                continue
+
+            raw_data_points = data_resp.json()
+
+            if not raw_data_points:
+                logger.debug(f"站点 {code} 无最新数据")
+                continue
+
+            # 3. 解析数据并构建入库列表
+            # IOC /stations/{code}/data 接口返回的数据结构通常为:
+            # [ { "t": "2024-06-04 11:10:00", "v": 1.23, "s": "rad" }, ... ]
+            # 或者包含 keys: 'Time', 'Value', 'Sensor'
+            # 我们需要做一个兼容处理
+
+            station_records = []
+
+            for point in raw_data_points:
+                # TODO:[*] 25-12-16 new 适配新的单站历史数据字段: slevel, stime, sensor
+                # 样例: {"slevel": 5.377, "stime": "2025-12-15 07:50:00           ", "sensor": "aqu"}
+                t_str = point.get('stime')
+                v_str = point.get('slevel')
+                s_str = point.get('sensor') or DEFAULT_NAME
+
+                if not t_str or v_str is None:
+                    continue
+
+                # 去除时间字符串末尾可能的空格
+                t_str = t_str.strip()
+
+                try:
+                    # 使用 arrow 解析时间
+                    real_time_arrow = arrow.get(t_str)
+
+                    surge_val = float(v_str)
+
+                    record_dict = {
+                        'station_code': code,
+                        'surge': surge_val,
+                        'dt': real_time_arrow,
+                        'ts': int(real_time_arrow.timestamp()),
+                        'sensor': s_str
+                    }
+                    station_records.append(record_dict)
+
+                except Exception as parse_e:
+                    logger.warning(f"数据解析错误: {parse_e}, Point: {point}")
+                    continue
+
+            # 4. 单个站点数据入库 (batch insert for one station)
+            if station_records:
+                db_handler.insert_realdata_list(station_records, to_coverage=True)
+                logger.success(f"站点 {code} 入库成功: {len(station_records)} 条")
+
+            # TODO:[*] 25-12-16 关键需求：请求间隔 3 秒
+            time.sleep(3)
+
+        except Exception as e:
+            logger.error(f"处理站点 {code} 发生异常: {e}")
+            # 继续处理下一个站点，不中断循环
+            continue
+
+    logger.info("所有站点遍历完成。")
 
 
 def start_scheduler():

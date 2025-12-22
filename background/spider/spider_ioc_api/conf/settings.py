@@ -44,12 +44,20 @@ DB_TABLE_SPLIT_OPTIONS = {
 SPIDER_OPTIONS = {
     # API 基础路径
     'api_base_url': 'https://api.ioc-sealevelmonitoring.org/v2/sensors',
+
+    # TODO:[*] 25-12-16 新增：站点列表和站点数据 API
+    'api_station_list': 'https://api.ioc-sealevelmonitoring.org/v2/stations/shortlist',
+    # 使用 f-string 格式占位符 {code}
+    'api_station_data_tpl': 'https://api.ioc-sealevelmonitoring.org/v2/stations/{code}/data',
+
     # 每次请求的数据量限制
     'limit': 2000,
     # 请求超时时间 (秒)
     'timeout': 30,
+
     # 定时任务执行间隔 (分钟)
-    'scheduler_interval': 1,
+    # TODO:[*] 25-12-16 由于改为遍历800个站点且有延迟，建议将调度间隔调大，或者该脚本作为单次守护进程运行
+    'scheduler_interval': 60,
     # (可选优化) 最大重试次数
     'max_retries': 3
 }
