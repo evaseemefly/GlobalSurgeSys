@@ -326,16 +326,28 @@ class StationSurgeDao(BaseDao):
             #                          station_code=station_code)
             # TODO:[-] 25-12-11 darw : prs
             # TODO:[-] 25-09-22 新加入的根据code获取对应的sensor
+            # TODO:[*] 25-12-25 注意此处已重新修改需要更新ioc sensor type
             # sensor_type: str = dict_unique_sensors.get(station_code)
             sensor_type: str = dict_ioc_sensors.get(station_code)
 
+            # TODO:[*] 25-12-25 注意单站查询的sensor有可能和station中显示的sensor类型不一致，暂时取消 sensor
+
+            # sql_str = text(f"""
+            #                             SELECT *
+            #                             FROM {tb_name}
+            #                             WHERE {tb_name}.gmt_realtime >= '{start_str}'
+            #                               AND {tb_name}.gmt_realtime <= '{end_str}'
+            #                               AND {tb_name}.station_code = '{station_code}'
+            #                               AND sensor='{sensor_type}'
+            #                               AND MINUTE({tb_name}.gmt_realtime) = 0
+            #                             ORDER BY {tb_name}.gmt_realtime {order_desc}
+            #                         """)
             sql_str = text(f"""
                             SELECT *
                             FROM {tb_name}
                             WHERE {tb_name}.gmt_realtime >= '{start_str}'
                               AND {tb_name}.gmt_realtime <= '{end_str}'
                               AND {tb_name}.station_code = '{station_code}'
-                              AND sensor='{sensor_type}'
                               AND MINUTE({tb_name}.gmt_realtime) = 0
                             ORDER BY {tb_name}.gmt_realtime {order_desc}
                         """)
