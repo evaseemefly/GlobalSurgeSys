@@ -5,8 +5,8 @@ db_pwd = DB.get('DB_PWD')
 DATABASES = {
     'default': {
         # mac 尝试使用
-        'ENGINE': 'mysqldb',  # 数据库引擎
         # 'ENGINE': 'mysqldb',  # 数据库引擎
+        'ENGINE': 'pymysql',  # 数据库引擎
         'NAME': 'surge_global_sys',  # 数据库名
         'USER': 'root',  # 账号
         'PASSWORD': db_pwd,
@@ -29,13 +29,18 @@ DATABASES = {
 DOWNLOAD_OPTIONS = {
     # 挂载映射盘路径
     # 'remote_root_path': r'/data/remote',
-    'remote_root_path': r'/mnt/home/nmefc/surge/surge_glb_data/',
+    # TODO:[-] 26-01-14 暂时备份
+    # 'remote_root_path': r'/mnt/home/nmefc/surge/surge_glb_data/',
     # 线上环境
     # 'remote_root_path': r'/home/nmefc/data_remote/71_upload2surge_wd_surge/2023:',
     # 本地下载根目录
     # 'local_root_path': r'E:\05DATA\01nginx_data\nmefc_download\WD_RESULT',
     # 'local_root_path': r'E:\05DATA\01nginx_data\global_surge',
-    'local_root_path': r'/data/local',
+    # TODO:[-] 26-01-14 暂时备份
+    # 'local_root_path': r'/data/local',
+    # TODO:[-] 26-01-14 修改了全球预报产品的获取逻辑
+    'remote_root_path': r'/Volumes/DRCC_DATA/02WORKSPACE/global_surge/测试/SOURCE',
+    'local_root_path': r'/Volumes/DRCC_DATA/02WORKSPACE/global_surge/测试/TARGET',
 
 }
 

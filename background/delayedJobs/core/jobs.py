@@ -1,4 +1,6 @@
+import os
 import pathlib
+import shutil  # TODO:[-] 26-01-14 引入 shutil 模块用于文件复制
 from abc import ABC, abstractmethod, abstractproperty
 from typing import List, Optional
 import xarray as xr
@@ -38,7 +40,8 @@ class IJob(ABC):
         :param remote_root_path:    ftp下载的远端对应登录后的路径(相对路径)
         """
         self.ts = ts
-        self.ftp_client: SFTPClient = self._init_ftp_client()
+        # TODO:[*] 26-01-09 取消 ftp client 初始化，改为直接读取本地文件
+        # self.ftp_client: SFTPClient = self._init_ftp_client()
         self.local_root_path = local_root_path
         self.remote_root_path = remote_root_path
         self.area = area_type
@@ -121,11 +124,12 @@ class GlobalSurgeJob(IJob):
             获取ftp远端地址的所有文件名
         :return:
         """
+        # TODO:[*] 26-01-09 改为本地直接读取，此方法暂时废弃或不被调用
         list_files: List[str] = []
-        list_files = self.ftp_client.get_nlist(self.get_remote_path())
+        # list_files = self.ftp_client.get_nlist(self.get_remote_path())
         return list_files
 
-    def batch_downloads(self) -> List[IForecastProductFile]:
+    def batch_downloads_backup(self) -> List[IForecastProductFile]:
         """
             批量下载远端文件并返回本地文件路径
         :return: 下载后的本地文件路径
@@ -163,7 +167,90 @@ class GlobalSurgeJob(IJob):
 
         return list_file
 
-    @profile
+    def batch_downloads(self) -> List[IForecastProductFile]:
+        """
+            TODO:[*] 26-01-09 修改为扫描本地目录文件 => copy将需要提取的 copy 至本地的 B 路径按需存储
+            批量获取本地文件路径对象
+            TODO:[-] 26-01-14 修改为从remote路径复制到local路径，并返回本地文件对象
+            批量复制文件并返回本地文件路径对象
+        :return: 本地文件对象列表
+        """
+        # list_local_fullpath: List[str] = []
+        '''本地下载文件全路径'''
+
+        # TODO:[*] 26-01-09 不再通过FTP获取列表，直接扫描本地目录
+        # list_file_name: List[str] = self.get_remote_files()
+        list_file: List[IForecastProductFile] = []
+
+        # target_dir = self.get_local_path()
+
+        # TODO:[*] 26-01-09 + remote 使用 get_remote_path (源路径 'b') 来查找文件
+        source_dir = self.get_remote_path()
+        # local_path 视为目标目录
+        target_dir = self.get_local_path()
+        if not os.path.exists(source_dir):
+            log_error(f'源目录不存在: {source_dir}')
+            return list_file
+
+        # 确保目标目录存在，不存在则创建
+        if not os.path.exists(target_dir):
+            try:
+                os.makedirs(target_dir)
+            except Exception as e:
+                log_error(f'创建目标目录失败: {target_dir}|msg:{e.args}')
+                return list_file
+
+        # 2. 扫描源目录
+        list_file_name: List[str] = os.listdir(source_dir)
+        # 过滤出 .nc 文件
+        list_file_name = [f for f in list_file_name if f.endswith('.nc')]
+        list_file_name.sort()
+
+        '''远端文件名集合'''
+        # 3. 遍历复制并构建对象
+        for temp_name in list_file_name:
+            # temp_remote_full_path: str = str(pathlib.PurePosixPath(self.get_remote_path()) / temp_name)
+            # temp_remote_path: str = self.get_remote_path()
+            """远端存储目录"""
+            # temp_local_path: str = self.get_local_path()
+            """本地存储目录"""
+            temp_relative_path: str = self.get_relative_path()
+            """存储的相对路径"""
+            # temp_local_full_path: str = str(pathlib.Path(self.get_local_path()) / temp_name)
+
+            src_full_path = os.path.join(source_dir, temp_name)
+            """源文件全路径"""
+            target_full_path = os.path.join(target_dir, temp_name)
+            """目标copy至目录路径"""
+            temp_relative_path = self.get_relative_path()
+            try:
+                # TODO:[*] 26-01-09 移除ftp下载逻辑
+                # self.ftp_client.download_file(temp_local_path, temp_remote_path, temp_name)
+                # TODO:[*] 24-09-25 2 db
+                # list_local_fullpath.append(temp_local_full_path)
+
+                # TODO:[-] 26-01-14 执行复制操作，保留元数据
+                shutil.copy2(src_full_path, target_full_path)
+
+                # 直接构建文件对象
+                # temp_file: IForecastProductFile = ForecastSurgeRasterFile(self.area, ElementTypeEnum.SURGE,
+                #                                                           RasterFileType.NETCDF, temp_name,
+                #                                                           temp_relative_path,
+                #                                                           self.local_root_path)
+                # TODO:[*] 26-01-09 + remote 直接构建文件对象，root_path 使用 self.remote_root_path
+                temp_file: IForecastProductFile = ForecastSurgeRasterFile(self.area, ElementTypeEnum.SURGE,
+                                                                          RasterFileType.NETCDF, temp_name,
+                                                                          temp_relative_path,
+                                                                          self.local_root_path)
+                list_file.append(temp_file)
+            except Exception as e:
+                # TODO:[*] 24-09-25 此处加入logger
+                log_error(f'处理本地文件{temp_name}时出错!|msg:{e.args}')
+                pass
+
+        return list_file
+
+    # @profile
     def to_do(self) -> None:
         """
             执行 下载 -> 读取转存 -> 写入db操作
@@ -171,8 +258,11 @@ class GlobalSurgeJob(IJob):
         """
         # TODO:[*] 24-10-14 手动连接与释放连接
 
+        # TODO:[*] 26-01-09 移除 ftp 连接逻辑
         # step1: 批量下载文件
-        self.ftp_client.connect()
+        # self.ftp_client.connect
+
+        # TODO:[-] 26-01-14 执行批量复制
         list_source_files: List[IForecastProductFile] = self.batch_downloads()
         """批量下载后的原始文件"""
         # 批量写入db
@@ -180,7 +270,9 @@ class GlobalSurgeJob(IJob):
 
         # TODO:[*] 24-12-04 加入了 nc -> merge.nc 的操作
         self.coverage_merge(list_source_files)
-        self.ftp_client.disconnect()
+
+        # TODO:[*] 26-01-09 移除 ftp 断开逻辑
+        # self.ftp_client.disconnect()
         pass
 
     def batch_store(self, list_source_files: List[IForecastProductFile]) -> None:

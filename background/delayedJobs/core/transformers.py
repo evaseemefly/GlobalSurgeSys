@@ -53,6 +53,10 @@ class GlobalSurgeTransformer:
             except Exception as e:
                 # TODO:[*] 24-09-25 需加入logger
                 # TODO:[*] 25-03-18 (-101, 'NetCDF: HDF error')
+                # TODO:[*] 26-01-15 缺少 netcdf 库导致的错误 —— conda install netCDF4
+                # found the following matches with the input file in xarray's IO backends: ['netcdf4', 'h5netcdf']. But their dependencies may not be installed, see:
+                # https://docs.xarray.dev/en/stable/user-guide/io.html
+                # https://docs.xarray.dev/en/stable/getting-started-guide/installing.html
                 raise FileReadError
             pass
         else:

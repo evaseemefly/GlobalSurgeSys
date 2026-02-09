@@ -4,7 +4,8 @@ from typing import List
 import arrow
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.schedulers.blocking import BlockingScheduler
-from apscheduler.util import utc
+# from apscheduler.util import utc
+from pytz import utc
 from memory_profiler import profile
 
 from common import logger
@@ -105,6 +106,28 @@ def daily_global_area_surge_forecast():
                 f'当前时间:{temp_utc_now_str}|出现异常!|msg:{e.args}')
 
 
+def test_global_surge_forecast(target_dr: arrow.Arrow):
+    """
+        TODO:[*] 26-01-09 新增的全球预报产品合成
+    @param target_dr:
+    @return:
+    """
+
+    forecast_issue_str: str = target_dr.format('YYYYMMDD HH:mm:ss')
+    forecast_issue_ts: int = target_dr.int_timestamp
+    areas: List[ForecastAreaEnum] = [ForecastAreaEnum.AMERICA]
+
+    for area_temp in areas:
+        log_info(
+            f'当前时间:{forecast_issue_str}|预报时间(utc):{forecast_issue_str}|预报区域:{area_temp.name}|执行处理操作...')
+        try:
+            surge_job_temp: IJob = GlobalSurgeJob(forecast_issue_ts, LOCAL_ROOT_PATH, area_temp, REMOTE_ROOT_PATH)
+            surge_job_temp.to_do()
+        except Exception as e:
+            log_exception(
+                f'当前时间:{forecast_issue_str}|出现异常!|msg:{e.args}')
+
+
 @profile
 def test_job():
     log_info('执行耗时任务')
@@ -118,6 +141,8 @@ def test_job():
 def test_delay_jobs():
     """
         根据时间测试任务执行情况
+        TODO:[*] 26-01-09
+        本地测试路径: /Volumes/DRCC_DATA/02WORKSPACE/global_surge/测试/SOURCE
     @return:
     """
     # 定义起始时间和结束时间
@@ -156,11 +181,15 @@ def main():
     # 每小时定时执行
     # scheduler.add_job(daily_global_area_surge_forecast, 'cron', minute=22)
     # scheduler.add_job(test_job, 'cron', minute=20)
-    scheduler.start()
+    # scheduler.start()
     # TODO:[-] 25-03-13 TEST: 根据当前时间执行下载操作
     # daily_global_area_surge_forecast()
     # TODO:[-] 25-03-24 TEST: 测试计划任务获取对应时间是否正确
     # test_delay_jobs()
+
+    # TODO:[*] 26-01-09 TEST: 测试 5820 上新的每日定时任务
+    test_issue_ar: arrow.Arrow = arrow.Arrow(2026, 1, 17, 12)
+    test_global_surge_forecast(test_issue_ar)
     pass
     # TODO:[-] 25-03-19 加入了异常退出结束scheduler
     try:

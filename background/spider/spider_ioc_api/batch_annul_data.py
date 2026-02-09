@@ -1,10 +1,11 @@
 import os
+import pathlib
 import time
 import requests
 import arrow
 import pandas as pd
 from loguru import logger
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Optional  # TODO:[-] 26-02-09 Added Optional
 
 # 引入项目配置的 Key
 try:
@@ -22,7 +23,7 @@ HEADERS = {
     'accept': 'application/json',
     'X-API-KEY': Keys.ioc_api_token
 }
-OUTPUT_DIR = "annual_data_2025"
+OUTPUT_DIR = "supplement_data_2025"
 FAILED_LOG_FILE = "failed_tasks.csv"  # 失败记录文件
 
 
@@ -130,8 +131,82 @@ def fetch_station_annual_data(station_code: str) -> Tuple[List[Dict], List[Dict]
     return all_data, failed_chunks
 
 
-def save_to_csv(station_code: str, data_list: List[Dict]):
-    """保存成功获取的数据"""
+# TODO:[-] 26-02-09 新增基础请求方法，解耦逻辑
+def fetch_data_for_range(station_code: str, timestart: str, timestop: str) -> Tuple[List[Dict], Optional[Dict]]:
+    """
+    基础方法：获取指定站点、指定时间段的数据
+    :param station_code: 站点代码
+    :param timestart: 开始时间 (ISO格式或API支持格式)
+    :param timestop: 结束时间
+    :return: (成功的数据列表, 失败信息字典/None)
+    """
+    # 构造 URL 和 参数
+    url = API_BASE.format(code=station_code)
+    params = {
+        'timestart': timestart,
+        'timestop': timestop,
+        'nofilter': 'false',
+        'allsensors': 'false',
+        'skip_gaps_until': f"{YEAR + 1}-01-05T00:00"
+    }
+
+    try:
+        # logger.debug(f"[{station_code}] 请求: {timestart} -> {timestop}")
+        resp = requests.get(url, headers=HEADERS, params=params, timeout=30)
+
+        # 情况1: HTTP 状态码非 200
+        if resp.status_code != 200:
+            logger.error(f"  - [{station_code}] 请求失败 Status: {resp.status_code}, Msg: {resp.text[:100]}")
+            return [], {
+                'code': station_code,
+                'start': timestart,
+                'end': timestop,
+                'reason': f"HTTP {resp.status_code}"
+            }
+
+        # 情况2: JSON 解析
+        try:
+            data = resp.json()
+            if isinstance(data, list):
+                return data, None
+            else:
+                # 返回了 JSON 但不是列表（可能是包含错误信息的字典）
+                logger.warning(f"  - [{station_code}] 响应格式非列表: {str(data)[:100]}")
+                return [], {
+                    'code': station_code,
+                    'start': timestart,
+                    'end': timestop,
+                    'reason': "Not a list"
+                }
+
+        except ValueError as json_err:
+            # 捕获 JSONDecodeError
+            logger.error(f"  - [{station_code}] JSON解析失败: {json_err}")
+            return [], {
+                'code': station_code,
+                'start': timestart,
+                'end': timestop,
+                'reason': "JSON Decode Error"
+            }
+
+    except Exception as e:
+        # 情况3: 网络超时、连接断开等其他异常
+        logger.error(f"  - [{station_code}] 请求网络异常: {e}")
+        return [], {
+            'code': station_code,
+            'start': timestart,
+            'end': timestop,
+            'reason': str(e)
+        }
+
+
+def save_to_csv(station_code: str, data_list: List[Dict], suffix: str = "_utc"):
+    """
+    保存成功获取的数据
+    :param station_code: 站点代码
+    :param data_list: 数据列表
+    :param suffix: 文件后缀，默认为 "_utc"，补录时可传入 "_supplement"
+    """
     if not data_list:
         return
 
@@ -148,11 +223,14 @@ def save_to_csv(station_code: str, data_list: List[Dict]):
             df = df[target_cols]
             df['stime'] = df['stime'].astype(str).str.strip()
 
-            filename = f"{station_code}_{YEAR}_utc.csv"
+            # 使用 suffix 参数构造文件名
+            filename = f"{station_code}_{YEAR}{suffix}.csv"
             filepath = os.path.join(OUTPUT_DIR, filename)
 
             df.to_csv(filepath, index=False, encoding='utf-8-sig')
-            logger.success(f"站点 [{station_code}] 数据保存完毕 (共 {len(df)} 条)")
+            logger.success(f"站点 [{station_code}] 数据保存完毕 -> {filename} (共 {len(df)} 条)")
+        else:
+            logger.warning(f"站点 [{station_code}] 数据列不匹配，跳过保存。Columns: {df.columns}")
     except Exception as e:
         logger.error(f"保存数据 CSV 失败: {e}")
 
@@ -177,7 +255,83 @@ def save_failures(failed_list: List[Dict]):
         logger.error(f"保存失败记录出错: {e}")
 
 
+def batch_supplement_data(df: pd.DataFrame):
+    """
+        传入 eg:
+            	StationName	StartTime	EndTime
+            0	AMTSI	2025-01-01 00:00:00	2025-01-30 00:00:00
+            1	AMTSI	2025-01-30 00:00:00	2025-02-28 00:00:00
+            2	AMTSI	2025-02-28 00:00:00	2025-03-29 00:00:00
+            3	AMTSI	2025-03-29 00:00:00	2025-04-27 00:00:00
+            4	AMTSI	2025-04-27 00:00:00	2025-05-26 00:00:00
+        批量执行补录操作（爬取）
+        根据传入的 DataFrame 批量执行补录操作
+        DataFrame 结构要求:
+        StationName | StartTime | EndTime
+    :param df:
+    :return:
+    """
+
+    if df.empty:
+        logger.warning("传入的补录数据为空")
+        return
+
+        # 去除列名空格，防止 ' StationName' 这种情况
+    df.columns = df.columns.str.strip()
+    required_cols = ['StationName', 'StartTime', 'EndTime']
+    if not all(col in df.columns for col in required_cols):
+        logger.error(f"DataFrame 缺少必要列: {required_cols}")
+        return
+
+    # 按站点分组，避免同一个站点频繁IO操作
+    grouped = df.groupby('StationName')
+    total_stations = len(grouped)
+    logger.info(f"开始执行补录任务，共 {total_stations} 个站点需要处理")
+
+    for idx, (station_code, group) in enumerate(grouped):
+        logger.info(f"[{idx + 1}/{total_stations}] 正在补录站点: {station_code}, 共 {len(group)} 个时间段")
+
+        station_accumulated_data = []
+        station_failures = []
+
+        for _, row in group.iterrows():
+            # 格式化时间，确保符合 API 要求 (API通常接受 YYYY-MM-DDTHH:mm)
+            # 假设输入是 "2025-01-01 00:00:00"，转为 "2025-01-01T00:00"
+            try:
+                start_str = str(row['StartTime']).strip()
+                end_str = str(row['EndTime']).strip()
+
+                # 使用 arrow 确保时间格式标准，或者直接使用字符串如果源格式已兼容
+                start = arrow.get(start_str).format('YYYY-MM-DDTHH:mm')
+                end = arrow.get(end_str).format('YYYY-MM-DDTHH:mm')
+            except Exception as e:
+                logger.error(f"时间格式转换错误: {row['StartTime']} - {row['EndTime']}, Error: {e}")
+                continue
+
+            # 调用基础请求方法
+            data, failure = fetch_data_for_range(station_code, start, end)
+
+            if data:
+                station_accumulated_data.extend(data)
+            if failure:
+                station_failures.append(failure)
+
+            # 避免请求过快
+            time.sleep(0.5)
+
+        # 保存该站点的补录数据 (使用 _supplement 后缀)
+        if station_accumulated_data:
+            save_to_csv(station_code, station_accumulated_data, suffix="_supplement")
+        else:
+            logger.warning(f"站点 [{station_code}] 补录未获取到任何有效数据")
+
+        # 记录补录过程中的失败
+        if station_failures:
+            save_failures(station_failures)
+
+
 def main():
+    # branch-1: 获取全年的数据
     target_stations = [
         #  'waka',
         # 'abas',
@@ -1757,20 +1911,29 @@ def main():
 
     logger.info(f"计划抓取以下站点: {target_stations}")
 
-    for code in target_stations:
-        # 1. 获取数据 (返回成功数据 和 失败片段)
-        full_year_data, failures = fetch_station_annual_data(code)
+    # for code in target_stations:
+    #     # 1. 获取数据 (返回成功数据 和 失败片段)
+    #     full_year_data, failures = fetch_station_annual_data(code)
+    #
+    #     # 2. 保存成功的数据
+    #     if full_year_data:
+    #         save_to_csv(code, full_year_data)
+    #
+    #     # 3. 保存失败的片段 (如果有)
+    #     if failures:
+    #         save_failures(failures)
+    #
+    #     logger.info("-" * 30)
 
-        # 2. 保存成功的数据
-        if full_year_data:
-            save_to_csv(code, full_year_data)
-
-        # 3. 保存失败的片段 (如果有)
-        if failures:
-            save_failures(failures)
-
-        logger.info("-" * 30)
-
+    # branch-2:
+    read_missing_data_path: pathlib.Path = pathlib.Path(
+        r'/Volumes/DRCC_DATA/01DATA/03IOC/天文潮/2026/2025缺测统计/汇总') / 'missing_ranges_result.csv'
+    if read_missing_data_path.exists():
+        logger.info(f"读取补录文件: {str(read_missing_data_path)}")
+        df_missing = pd.read_csv(str(read_missing_data_path))
+        batch_supplement_data(df_missing)
+    else:
+        logger.warning(f"找不到补录文件: {str(read_missing_data_path)}")
     logger.info("所有任务完成。")
 
 
