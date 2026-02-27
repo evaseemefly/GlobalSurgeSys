@@ -76,7 +76,7 @@ def fetch_station_annual_data(station_code: str) -> Tuple[List[Dict], List[Dict]
 
         try:
             logger.info(f"[{station_code}] 请求片段 {i + 1}/{len(time_chunks)}: {timestart} -> {timestop}")
-            resp = requests.get(url, headers=HEADERS, params=params, timeout=30)
+            resp = requests.get(url, headers=HEADERS, params=params, timeout=80)
 
             # 情况1: HTTP 状态码非 200
             if resp.status_code != 200:
@@ -152,7 +152,8 @@ def fetch_data_for_range(station_code: str, timestart: str, timestop: str) -> Tu
 
     try:
         # logger.debug(f"[{station_code}] 请求: {timestart} -> {timestop}")
-        resp = requests.get(url, headers=HEADERS, params=params, timeout=30)
+        logger.info(f"[{station_code}] 请求片段 | {timestart} -> {timestop}|")
+        resp = requests.get(url, headers=HEADERS, params=params, timeout=80)
 
         # 情况1: HTTP 状态码非 200
         if resp.status_code != 200:
